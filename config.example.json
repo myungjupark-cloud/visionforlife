@@ -1,0 +1,21 @@
+{
+  "adminPin": "000000",
+  "defaultCourse": "who-is-god",
+  "remoteAccess": {
+    "publicUrl": "",
+    "autoDeployOnSave": false,
+    "corsOrigins": []
+  },
+  "auth": {
+    "sessionSecret": "change-me-in-config-local-json",
+    "sessionDays": 30
+  },
+  "ollama": {
+    "baseUrl": "http://127.0.0.1:11434",
+    "model": "gemma4:12b",
+    "numPredict": 4096,
+    "numCtx": 16384
+  },
+  "searchDb": "",
+  "voyage_key": ""
+}

@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "courseSlug": "who-is-god",
+  "rootId": "root",
+  "meta": {
+    "title": "하나님은 누구신가?",
+    "subtitle": "VisionforLife 첫 여정",
+    "updatedAt": "2026-07-08T14:00:00+09:00"
+  },
+  "nodes": [
+    {
+      "id": "root",
+      "title": "하나님은 누구신가?",
+      "description": "모든 신앙의 출발점은 이 질문입니다.\n\n이 여정에서는 성경이 말하는 하나님을 단계별로 살펴봅니다. 아래 1단계 주제 중 하나를 선택해 이어가세요.",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "l1-nature",
+      "title": "하나님은 어떤 분이신가?",
+      "description": "하나님의 속성과 성품을 알아갑니다.",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "l1-trinity",
+      "title": "삼위일체 — 하나님의 세 위격",
+      "description": "성부·성자·성령, 한 분이시면서 세 위격으로 계신 하나님.",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "l1-creator",
+      "title": "창조주 하나님",
+      "description": "세상과 우리를 지으신 하나님.",
+      "scripture": "창세기 1:1 — 태초에 하나님이 천지를 창조하시니라",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "l1-personal",
+      "title": "나와 만나시는 하나님",
+      "description": "추상적 개념이 아니라, 나와 관계 맺으시는 하나님.",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "edges": [
+    { "id": "e-nature", "from": "root", "to": "l1-nature", "type": "hierarchy" },
+    { "id": "e-trinity", "from": "root", "to": "l1-trinity", "type": "hierarchy" },
+    { "id": "e-creator", "from": "root", "to": "l1-creator", "type": "hierarchy" },
+    { "id": "e-personal", "from": "root", "to": "l1-personal", "type": "hierarchy" }
+  ]
+}

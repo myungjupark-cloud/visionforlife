@@ -1,0 +1,21 @@
+{
+  "id": "kr.visionforlife.app",
+  "name": "VisionforLife",
+  "short_name": "VisionforLife",
+  "description": "여정형 마이크로-LMS — 목표와 진도에 맞춘 단계별 학습",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "orientation": "any",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

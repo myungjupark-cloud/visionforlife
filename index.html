@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a1628">
+  <meta name="description" content="VisionforLife — 목표와 진도에 맞춘 여정형 마이크로-LMS">
+  <title>VisionforLife</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="VisionforLife">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="app.css?v=2">
+  <style>
+    [hidden] { display: none !important; }
+    .admin-overlay:not([hidden]) {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-toolbar:not([hidden]) { display: flex !important; }
+    .admin-editor:not([hidden]) { display: block !important; }
+    .admin-editor-resizer:not([hidden]) { display: block !important; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-title">VisionforLife</h1>
+    <div class="header-actions">
+      <button type="button" id="btn-refresh" class="btn btn-ghost" title="최신 내용 받기">새로고침</button>
+      <button type="button" id="btn-reset" class="btn btn-ghost" title="과정 목록">과정 목록</button>
+      <button type="button" id="btn-account" class="btn btn-ghost" title="로그인·가입" hidden>로그인</button>
+      <button type="button" id="btn-admin" class="btn btn-ghost" title="운영자 모드">운영</button>
+    </div>
+  </header>
+
+  <main class="app-main" id="app-main">
+    <section id="catalog-panel" class="catalog-panel">
+      <p class="catalog-eyebrow">여정형 마이크로-LMS</p>
+      <h2 class="catalog-title">학습 과정</h2>
+      <p class="catalog-lead">목표와 진도에 맞춰 단계별로 이어가세요. 로그인하면 진도가 저장됩니다.</p>
+      <div id="catalog-list" class="catalog-list"></div>
+    </section>
+    <div class="focus-app" id="focus-app" hidden>
+      <button type="button" id="btn-back" class="focus-back" hidden>← 1단계 목록</button>
+      <p id="focus-depth" class="focus-depth" hidden></p>
+      <div id="course-progress" class="course-progress" hidden>
+        <span id="course-progress-label" class="course-progress-label">진도 0%</span>
+        <span class="course-progress-track" aria-hidden="true"><span id="course-progress-bar" class="course-progress-bar"></span></span>
+      </div>
+      <h2 id="focus-title" class="focus-title"></h2>
+      <article id="focus-card" class="focus-card">
+        <p id="focus-desc" class="focus-desc"></p>
+        <blockquote id="focus-scripture" class="focus-scripture"></blockquote>
+        <button type="button" id="btn-mark-complete" class="btn btn-sm focus-complete-btn" hidden>✓ 이해했습니다</button>
+      </article>
+      <section id="outline-tree-panel" class="outline-tree-panel" hidden>
+        <h3 id="outline-tree-heading" class="outline-tree-heading">구조 한눈에 보기</h3>
+        <div id="outline-tree" class="outline-tree-root"></div>
+      </section>
+      <div id="expand-wrap" class="expand-wrap" hidden>
+        <button type="button" id="btn-expand" class="btn-expand" title="다음 주제 펼치기" aria-label="다음 주제 펼치기">▼</button>
+      </div>
+      <section id="children-panel" class="children-panel" hidden>
+        <h3 id="children-heading" class="children-heading">이어서 살펴보기</h3>
+        <div id="children-list" class="children-list"></div>
+      </section>
+      <p id="focus-trail" class="focus-trail"></p>
+    </div>
+  </main>
+
+  <div id="auth-overlay" class="admin-overlay" hidden>
+    <div class="admin-modal">
+      <h2 id="auth-modal-title">로그인</h2>
+      <p class="admin-hint">VisionforLife 학습 진도를 저장하려면 가입하세요.</p>
+      <label>이메일<input type="email" id="auth-email" class="admin-input" autocomplete="username"></label>
+      <label>비밀번호<input type="password" id="auth-password" class="admin-input" autocomplete="current-password"></label>
+      <label id="auth-name-row" hidden>이름<input type="text" id="auth-name" class="admin-input" autocomplete="name"></label>
+      <div class="admin-row">
+        <button type="button" id="auth-cancel" class="btn btn-ghost">취소</button>
+        <button type="button" id="auth-submit" class="btn btn-primary">로그인</button>
+      </div>
+      <p class="admin-hint"><button type="button" id="auth-toggle-mode" class="btn btn-ghost btn-sm">계정이 없으신가요? 가입</button></p>
+    </div>
+  </div>
+
+  <div id="admin-overlay" class="admin-overlay" hidden>
+    <div class="admin-modal">
+      <h2>운영자 모드</h2>
+      <p id="admin-hint" class="admin-hint">PIN을 입력하세요</p>
+      <input type="password" id="admin-pin" class="admin-input" inputmode="numeric" autocomplete="off" placeholder="PIN">
+      <div class="admin-row">
+        <button type="button" id="admin-cancel" class="btn btn-ghost">취소</button>
+        <button type="button" id="admin-login" class="btn btn-primary">입장</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-toolbar" class="admin-toolbar" hidden>
+    <span class="admin-badge">운영자</span>
+    <button type="button" id="btn-add-child" class="btn btn-sm">자식 추가</button>
+    <button type="button" id="btn-delete-node" class="btn btn-sm btn-danger">삭제</button>
+    <button type="button" id="btn-export" class="btn btn-sm">보내기</button>
+    <button type="button" id="btn-import" class="btn btn-sm">가져오기</button>
+    <input type="file" id="import-file" accept=".json,application/json" hidden>
+    <button type="button" id="btn-save" class="btn btn-sm btn-primary">저장</button>
+    <button type="button" id="btn-exit-admin" class="btn btn-sm btn-ghost">나가기</button>
+  </div>
+
+  <div id="admin-editor" class="admin-editor" hidden>
+    <div class="admin-editor-body">
+    <h3>노드 편집 <span class="admin-editor-resize-hint">· 스크롤바 오른쪽 막대를 드래그 (더블클릭: 기본 폭)</span></h3>
+    <label>제목<input type="text" id="edit-title" class="admin-input"></label>
+    <label>설명<textarea id="edit-desc" class="admin-input admin-input-desc" rows="10"></textarea></label>
+    <div id="reorder-row" class="admin-move" hidden>
+      <p class="admin-section-title">목록 순서</p>
+      <p class="admin-hint">▲/▼로 같은 단계 형제 순서 또는 이어지는 단계(한 줄 체인) 안에서 위·아래로 바꿉니다. 저장을 눌러 반영하세요.</p>
+      <div class="admin-reorder-actions">
+        <button type="button" id="btn-move-up" class="btn btn-sm">▲ 위로</button>
+        <button type="button" id="btn-move-down" class="btn btn-sm">▼ 아래로</button>
+      </div>
+    </div>
+    <div id="move-parent-row" class="admin-move" hidden>
+      <p class="admin-section-title">주제 위치</p>
+      <p class="admin-hint">옮길 주제로 들어간 뒤, 부모를 고르고 이동·저장하세요.</p>
+      <p id="edit-location" class="admin-location"></p>
+      <label>부모 주제
+        <select id="edit-parent" class="admin-input"></select>
+      </label>
+      <label>이동 방식
+        <select id="edit-move-mode" class="admin-input">
+          <option value="insert">사이에 끼워 넣기 (기존 하위가 한 단계 밀림)</option>
+          <option value="sibling">형제로 나란히 (같은 단계)</option>
+        </select>
+      </label>
+      <button type="button" id="btn-move-parent" class="btn btn-sm btn-primary admin-move-btn">이 위치로 이동</button>
+    </div>
+    <div id="ai-draft-row" class="admin-ai">
+      <p class="admin-section-title">로컬 AI 초안</p>
+      <fieldset class="admin-ai-mode" id="ai-ask-mode">
+        <legend class="visually-hidden">질문 방식</legend>
+        <label class="admin-ai-mode-opt"><input type="radio" name="ai-ask-mode" value="rag" checked> RAG (corpus DB)</label>
+        <label class="admin-ai-mode-opt"><input type="radio" name="ai-ask-mode" value="model"> 로컬 AI만</label>
+      </fieldset>
+      <p class="admin-hint" id="ai-mode-hint">과정별 corpus DB에서 자료를 찾아 Ollama가 답합니다.</p>
+      <label>질문
+        <textarea id="ai-question" class="admin-input" rows="3" placeholder="예: 이 주제를 쉽게 설명해 주세요."></textarea>
+      </label>
+      <button type="button" id="btn-ai-ask" class="btn btn-sm admin-ai-btn">질문하기</button>
+      <p id="ai-answer-meta" class="admin-ai-meta" hidden></p>
+      <div id="ai-answer-preview" class="admin-ai-preview" hidden></div>
+      <label>원문(마크다운)
+        <textarea id="ai-answer" class="admin-input admin-ai-answer" rows="12" readonly placeholder="질문하면 답변이 여기에 표시됩니다."></textarea>
+      </label>
+      <div class="admin-ai-actions">
+        <button type="button" id="btn-ai-insert" class="btn btn-sm btn-primary" disabled>설명에 넣기</button>
+        <button type="button" id="btn-ai-append" class="btn btn-sm" disabled>설명에 추가</button>
+      </div>
+    </div>
+    <label>인용·출처<textarea id="edit-scripture" class="admin-input" rows="2"></textarea></label>
+    <p class="admin-hint">변경 내용은 저장 버튼으로 반영합니다.</p>
+    </div>
+  </div>
+
+  <div id="admin-editor-resizer" class="admin-editor-resizer" hidden role="separator" aria-orientation="vertical" aria-label="노드 편집 패널 폭 조절" title="좌우 폭 조절 — 드래그 (더블클릭: 기본 폭)"></div>
+
+  <div id="font-size-chip" class="sizechip" role="group" aria-label="글자 크기">
+    <button type="button" id="fs-down" class="sm" aria-label="글자 작게">가–</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" id="fs-up" class="lg" aria-label="글자 크게">가＋</button>
+  </div>
+
+  <footer class="app-version-foot" aria-label="앱 버전">
+    <button type="button" id="app-ver-btn" class="app-ver-btn">Ver. · 업데이트 내역</button>
+  </footer>
+
+  <div id="app-update-modal" class="app-update-modal" hidden>
+    <div class="app-update-modal__backdrop" data-close aria-hidden="true"></div>
+    <div class="app-update-modal__panel" role="dialog" aria-modal="true" aria-label="업데이트 내역">
+      <button type="button" class="app-update-modal__close" data-close aria-label="닫기">×</button>
+      <h2 class="app-update-modal__title">업데이트 내역</h2>
+      <ul id="app-changelog" class="app-changelog"></ul>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="markdown.js?v=2"></script>
+  <script src="version.js?v=2"></script>
+  <script src="app.js?v=2"></script>
+</body>
+</html>

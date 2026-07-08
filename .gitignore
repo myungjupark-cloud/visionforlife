@@ -1,0 +1,8 @@
+config.local.json
+config.cloudflared.yml
+data/visionforlife.db
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+node_modules/
