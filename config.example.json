@@ -1,5 +1,6 @@
 {
-  "adminPin": "000000",
+  "adminPin": "4464572",
+  "adminPinRequired": true,
   "defaultCourse": "who-is-god",
   "remoteAccess": {
     "publicUrl": "",

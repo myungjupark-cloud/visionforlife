@@ -187,6 +187,47 @@ def get_course_progress(user_id: int, course_slug: str) -> dict[str, Any]:
     }
 
 
+def update_user_goals(user_id: int, goals: str) -> dict[str, Any]:
+    goals = (goals or "").strip()
+    with _connect() as conn:
+        conn.execute("UPDATE users SET goals = ? WHERE id = ?", (goals, user_id))
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not row:
+        raise ValueError("user not found")
+    return _user_row_to_dict(row)
+
+
+def list_users(limit: int = 200) -> list[dict[str, Any]]:
+    limit = max(1, min(int(limit or 200), 500))
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT u.id, u.email, u.name, u.role, u.goals, u.created_at,
+                   COUNT(DISTINCT p.course_slug) AS course_count,
+                   COUNT(p.node_id) AS node_count
+            FROM users u
+            LEFT JOIN user_progress p ON p.user_id = u.id
+            GROUP BY u.id
+            ORDER BY u.id ASC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [
+        {
+            "id": row["id"],
+            "email": row["email"],
+            "name": row["name"],
+            "role": row["role"],
+            "goals": row["goals"],
+            "createdAt": row["created_at"],
+            "courseCount": int(row["course_count"] or 0),
+            "nodeCount": int(row["node_count"] or 0),
+        }
+        for row in rows
+    ]
+
+
 def get_all_progress_summary(user_id: int) -> dict[str, dict[str, Any]]:
     with _connect() as conn:
         rows = conn.execute(

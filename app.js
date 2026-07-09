@@ -13,10 +13,16 @@
     explored: [],
     childrenOpen: false,
     admin: false,
+    adminCatalog: false,
+    adminPin: "",
+    courseFormMode: "add",
+    catalogFormMode: "add",
     adminEditId: null,
     user: null,
     authMode: "login",
-    screen: "catalog",
+    screen: "catalogs",
+    activeCatalogSlug: null,
+    catalogs: [],
     courseSlug: null,
     catalog: [],
     courseProgress: { nodes: {}, lastNodeId: null, percent: 0 }
@@ -93,18 +99,112 @@
     btnExitAdmin: $("btn-exit-admin"),
     toast: $("toast"),
     catalogPanel: $("catalog-panel"),
+    catalogTitle: $("catalog-title"),
+    catalogLead: $("catalog-lead"),
+    btnBackToCatalogs: $("btn-back-to-catalogs"),
     catalogList: $("catalog-list"),
     focusApp: $("focus-app"),
     courseProgressWrap: $("course-progress"),
     courseProgressLabel: $("course-progress-label"),
     courseProgressBar: $("course-progress-bar"),
-    btnMarkComplete: $("btn-mark-complete")
+    btnMarkComplete: $("btn-mark-complete"),
+    catalogResume: $("catalog-resume"),
+    btnCatalogResume: $("btn-catalog-resume"),
+    catalogGoals: $("catalog-goals"),
+    goalsInput: $("goals-input"),
+    btnSaveGoals: $("btn-save-goals"),
+    catalogAdminBar: $("catalog-admin-bar"),
+    btnAddCatalog: $("btn-add-catalog"),
+    btnAddCourse: $("btn-add-course"),
+    btnAdminUsers: $("btn-admin-users"),
+    btnExitCatalogAdmin: $("btn-exit-catalog-admin"),
+    courseAddOverlay: $("course-add-overlay"),
+    courseFormTitle: $("course-form-title"),
+    courseFormHint: $("course-form-hint"),
+    courseAddSlug: $("course-add-slug"),
+    courseAddTitle: $("course-add-title"),
+    courseAddSubtitle: $("course-add-subtitle"),
+    courseAddDesc: $("course-add-desc"),
+    courseAddCancel: $("course-add-cancel"),
+    courseAddSubmit: $("course-add-submit"),
+    adminUsersOverlay: $("admin-users-overlay"),
+    adminUsersList: $("admin-users-list"),
+    adminUsersClose: $("admin-users-close"),
+    catalogFormOverlay: $("catalog-form-overlay"),
+    catalogFormTitle: $("catalog-form-title"),
+    catalogFormHint: $("catalog-form-hint"),
+    catalogFormSlug: $("catalog-form-slug"),
+    catalogFormTitleInput: $("catalog-form-title-input"),
+    catalogFormDesc: $("catalog-form-desc"),
+    catalogFormCancel: $("catalog-form-cancel"),
+    catalogFormSubmit: $("catalog-form-submit")
   };
 
   var PROGRESS_KEY = "visionforlife-progress";
 
+  function appBasePath() {
+    var link = document.querySelector('link[rel="manifest"]');
+    if (link && link.href) {
+      try {
+        return new URL("./", link.href).href;
+      } catch (e) { /* fall through */ }
+    }
+    var path = location.pathname || "/";
+    if (!path.endsWith("/")) {
+      if (/\.[a-z0-9]+$/i.test(path.split("/").pop() || "")) {
+        path = path.replace(/\/[^/]*$/, "/");
+      } else {
+        path += "/";
+      }
+    }
+    return location.origin + path;
+  }
+
+  function assetUrl(rel) {
+    return new URL(String(rel || "").replace(/^\//, ""), appBasePath()).href;
+  }
+
   function courseMindmapPath(slug) {
-    return "data/courses/" + slug + "/mindmap.json";
+    return assetUrl("data/courses/" + slug + "/mindmap.json");
+  }
+
+  function staticCatalogsIndexPath() {
+    return assetUrl("data/catalogs.json");
+  }
+
+  function staticCatalogCoursesPath(catalogSlug) {
+    return assetUrl("data/catalogs/" + encodeURIComponent(catalogSlug) + "/courses.json");
+  }
+
+  function enrichCatalogCourses(courses, catalogSlug) {
+    var meta = (state.catalogs || []).find(function (c) { return c.slug === catalogSlug; });
+    return (courses || []).map(function (course) {
+      var item = Object.assign({}, course);
+      item.catalogSlug = catalogSlug;
+      item.catalogTitle = meta ? meta.title : catalogSlug;
+      return item;
+    });
+  }
+
+  function catalogBySlug(slug) {
+    return (state.catalogs || []).find(function (c) { return c.slug === slug; });
+  }
+
+  function isCatalogPublished(catalog) {
+    if (!catalog) return false;
+    return catalog.published !== false;
+  }
+
+  function canAccessCatalog(slug) {
+    if (!slug) return false;
+    if (state.adminCatalog || state.admin) return true;
+    return isCatalogPublished(catalogBySlug(slug));
+  }
+
+  function catalogsForDisplay() {
+    var list = (state.catalogs || []).slice();
+    if (state.adminCatalog) return list;
+    return list.filter(isCatalogPublished);
   }
 
   function readLocalProgressStore() {
@@ -196,11 +296,12 @@
     });
   }
 
-  function recordProgress(nodeId, status) {
+  function recordProgress(nodeId, status, options) {
     if (!state.courseSlug || !nodeId || !state.data) return;
+    options = options || {};
     var nodes = Object.assign({}, state.courseProgress.nodes);
     var prev = nodes[nodeId];
-    if (status === "visited" && prev === "completed") {
+    if (status === "visited" && prev === "completed" && !options.allowDowngrade) {
       /* keep completed */
     } else {
       nodes[nodeId] = status;
@@ -228,30 +329,430 @@
       els.btnMarkComplete.hidden = isRoot || state.admin;
       els.btnMarkComplete.classList.toggle("is-done", done);
       els.btnMarkComplete.textContent = done ? "✓ 이해 완료" : "✓ 이해했습니다";
+      els.btnMarkComplete.title = done ? "다시 눌러 이해 완료 취소" : "이 주제를 이해 완료로 표시";
     }
   }
 
   function setScreen(screen) {
     state.screen = screen;
     var inCourse = screen === "course";
+    var inCatalog = screen === "catalog";
+    var inCatalogs = screen === "catalogs";
     if (els.catalogPanel) els.catalogPanel.hidden = inCourse;
     if (els.focusApp) els.focusApp.hidden = !inCourse;
     if (els.btnRefresh) els.btnRefresh.hidden = !inCourse;
     if (els.btnBack) els.btnBack.hidden = !inCourse || !state.data || state.centerId === state.data.rootId;
     if (!inCourse && els.courseProgressWrap) els.courseProgressWrap.hidden = true;
+    if (els.btnBackToCatalogs) els.btnBackToCatalogs.hidden = !inCatalog;
+    if (els.btnAddCatalog) els.btnAddCatalog.hidden = !state.adminCatalog || !inCatalogs;
+    if (els.btnAddCourse) els.btnAddCourse.hidden = !state.adminCatalog || !inCatalog;
+    if (els.btnReset) {
+      els.btnReset.title = inCourse ? "과정 목록" : (inCatalog ? "카탈로그 목록" : "목록");
+      els.btnReset.textContent = inCourse ? "과정 목록" : (inCatalog ? "카탈로그 목록" : "목록");
+    }
   }
 
-  function renderCatalog() {
+  function catalogProgressFor(course) {
+    if (course.progress && (course.progress.lastNodeId || course.progress.percent)) {
+      return course.progress;
+    }
+    var local = localProgressForCourse(course.slug);
+    if (!local.lastNodeId && !(local.nodes && Object.keys(local.nodes).length)) return null;
+    return {
+      percent: (course.progress && course.progress.percent) || 0,
+      lastNodeId: local.lastNodeId,
+      nodes: local.nodes || {}
+    };
+  }
+
+  function sortCatalogCourses(courses) {
+    return courses.slice().sort(function (a, b) {
+      var pa = catalogProgressFor(a);
+      var pb = catalogProgressFor(b);
+      var aActive = pa && pa.lastNodeId && (pa.percent || 0) < 100;
+      var bActive = pb && pb.lastNodeId && (pb.percent || 0) < 100;
+      if (aActive !== bActive) return aActive ? -1 : 1;
+      var ao = a.order != null ? a.order : 999;
+      var bo = b.order != null ? b.order : 999;
+      return ao - bo;
+    });
+  }
+
+  function findResumeCourse() {
+    var best = null;
+    var bestPct = -1;
+    var courses = state.allCourses || state.catalog || [];
+    courses.forEach(function (course) {
+      if (!canAccessCatalog(course.catalogSlug)) return;
+      var prog = catalogProgressFor(course);
+      if (!prog || !prog.lastNodeId) return;
+      var pct = prog.percent || 0;
+      if (pct >= 100) return;
+      if (pct > bestPct) {
+        bestPct = pct;
+        best = { course: course, progress: prog };
+      }
+    });
+    return best;
+  }
+
+  function renderResumeBanner() {
+    if (!els.catalogResume || !els.btnCatalogResume) return;
+    var resume = findResumeCourse();
+    if (!resume) {
+      els.catalogResume.hidden = true;
+      return;
+    }
+    var title = resume.course.title || resume.course.slug;
+    var pct = resume.progress.percent || 0;
+    var catalogLabel = resume.course.catalogTitle ? resume.course.catalogTitle + " · " : "";
+    els.btnCatalogResume.textContent = "▶ " + catalogLabel + title + " 이어하기 (" + pct + "%)";
+    els.btnCatalogResume.dataset.slug = resume.course.slug;
+    els.btnCatalogResume.dataset.catalogSlug = resume.course.catalogSlug || "";
+    els.btnCatalogResume.dataset.nodeId = resume.progress.lastNodeId || "";
+    els.catalogResume.hidden = false;
+  }
+
+  function updateGoalsUI() {
+    if (!els.catalogGoals) return;
+    if (!state.user) {
+      els.catalogGoals.hidden = true;
+      return;
+    }
+    els.catalogGoals.hidden = false;
+    if (els.goalsInput) els.goalsInput.value = state.user.goals || "";
+  }
+
+  function saveGoals() {
+    if (!state.user || !els.goalsInput) return;
+    var goals = els.goalsInput.value.trim();
+    fetch("/api/auth/goals", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goals: goals })
+    })
+      .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.data.ok) {
+          toast((result.data && result.data.error) || "저장 실패");
+          return;
+        }
+        state.user = result.data.user;
+        toast("학습 목표를 저장했습니다");
+      })
+      .catch(function () {
+        toast("서버에 연결할 수 없습니다");
+      });
+  }
+
+  function slugifyTitle(title) {
+    return String(title || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u3131-\u318e\uac00-\ud7a3\s-]+/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48);
+  }
+
+  function enterCatalogAdmin(pin) {
+    state.adminCatalog = true;
+    state.adminPin = pin || "";
+    if (els.catalogAdminBar) els.catalogAdminBar.hidden = false;
+    if (els.adminOverlay) els.adminOverlay.hidden = true;
+    if (els.btnAdmin) {
+      els.btnAdmin.textContent = "운영중";
+      els.btnAdmin.setAttribute("aria-pressed", "true");
+    }
+    setScreen(state.screen);
+    toast("카탈로그 운영 모드");
+    renderListPanel();
+  }
+
+  function exitCatalogAdmin() {
+    state.adminCatalog = false;
+    state.adminPin = "";
+    if (els.catalogAdminBar) els.catalogAdminBar.hidden = true;
+    if (els.btnAdmin) {
+      els.btnAdmin.textContent = "운영";
+      els.btnAdmin.setAttribute("aria-pressed", "false");
+    }
+    setScreen(state.screen);
+    renderListPanel();
+  }
+
+  function openCatalogFormModal(mode, catalog) {
+    if (!els.catalogFormOverlay) return;
+    state.catalogFormMode = mode === "edit" ? "edit" : "add";
+    var isEdit = state.catalogFormMode === "edit";
+    if (els.catalogFormTitle) {
+      els.catalogFormTitle.textContent = isEdit ? "카탈로그 편집" : "새 카탈로그";
+    }
+    if (els.catalogFormHint) {
+      els.catalogFormHint.textContent = isEdit
+        ? "카탈로그 정보를 수정합니다. slug는 변경할 수 없습니다."
+        : "먼저 카탈로그를 만든 뒤, 그 안에 과정을 추가하세요.";
+    }
+    if (els.catalogFormSlug) {
+      els.catalogFormSlug.value = (catalog && catalog.slug) || "";
+      els.catalogFormSlug.readOnly = isEdit;
+      els.catalogFormSlug.classList.toggle("is-readonly", isEdit);
+    }
+    if (els.catalogFormTitleInput) els.catalogFormTitleInput.value = (catalog && catalog.title) || "";
+    if (els.catalogFormDesc) els.catalogFormDesc.value = (catalog && catalog.description) || "";
+    if (els.catalogFormSubmit) els.catalogFormSubmit.textContent = isEdit ? "저장" : "만들기";
+    els.catalogFormOverlay.hidden = false;
+    if (els.catalogFormTitleInput) els.catalogFormTitleInput.focus();
+  }
+
+  function closeCatalogFormModal() {
+    if (els.catalogFormOverlay) els.catalogFormOverlay.hidden = true;
+    if (els.catalogFormSlug) {
+      els.catalogFormSlug.readOnly = false;
+      els.catalogFormSlug.classList.remove("is-readonly");
+    }
+    state.catalogFormMode = "add";
+  }
+
+  function submitCatalogForm() {
+    var slug = els.catalogFormSlug && els.catalogFormSlug.value.trim();
+    var title = els.catalogFormTitleInput && els.catalogFormTitleInput.value.trim();
+    var description = els.catalogFormDesc && els.catalogFormDesc.value.trim();
+    if (!slug && title) slug = slugifyTitle(title);
+    if (!slug || !title) {
+      toast("slug와 제목을 입력하세요");
+      return;
+    }
+    var isEdit = state.catalogFormMode === "edit";
+    fetch("/api/catalogs", {
+      method: isEdit ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pin: state.adminPin,
+        slug: slug,
+        title: title,
+        description: description
+      })
+    })
+      .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.data.ok) {
+          toast((result.data && result.data.error) || (isEdit ? "카탈로그 수정 실패" : "카탈로그 생성 실패"));
+          return;
+        }
+        closeCatalogFormModal();
+        if (isEdit) {
+          loadCatalogsHome();
+          toast("카탈로그가 수정되었습니다: " + title);
+        } else {
+          showCatalogCourses(slug);
+          toast("카탈로그가 만들어졌습니다 — 이제 과정을 추가하세요");
+        }
+      })
+      .catch(function () {
+        toast("서버에 연결할 수 없습니다");
+      });
+  }
+
+  function openCatalogAddModal() {
+    openCatalogFormModal("add", null);
+  }
+
+  function openCatalogEditModal(slug) {
+    var catalog = (state.catalogs || []).find(function (c) { return c.slug === slug; });
+    if (!catalog) {
+      toast("카탈로그를 찾을 수 없습니다");
+      return;
+    }
+    openCatalogFormModal("edit", catalog);
+  }
+
+  function openCourseFormModal(mode, course) {
+    if (!els.courseAddOverlay) return;
+    state.courseFormMode = mode === "edit" ? "edit" : "add";
+    var isEdit = state.courseFormMode === "edit";
+    if (els.courseFormTitle) {
+      els.courseFormTitle.textContent = isEdit ? "과정 편집" : "새 과정 추가";
+    }
+    if (els.courseFormHint) {
+      els.courseFormHint.textContent = isEdit
+        ? "카탈로그 카드에 반영됩니다. 제목·부제는 과정 루트에도 동기화됩니다."
+        : "slug는 영문·숫자·하이픈만 (예: who-is-jesus)";
+    }
+    if (els.courseAddSlug) {
+      els.courseAddSlug.value = (course && course.slug) || "";
+      els.courseAddSlug.readOnly = isEdit;
+      els.courseAddSlug.classList.toggle("is-readonly", isEdit);
+    }
+    if (els.courseAddTitle) els.courseAddTitle.value = (course && course.title) || "";
+    if (els.courseAddSubtitle) els.courseAddSubtitle.value = (course && course.subtitle) || "";
+    if (els.courseAddDesc) els.courseAddDesc.value = (course && course.description) || "";
+    if (els.courseAddSubmit) els.courseAddSubmit.textContent = isEdit ? "저장" : "만들기";
+    els.courseAddOverlay.hidden = false;
+    if (els.courseAddTitle) els.courseAddTitle.focus();
+  }
+
+  function openCourseAddModal() {
+    if (!state.activeCatalogSlug) {
+      toast("먼저 카탈로그를 선택하세요");
+      return;
+    }
+    openCourseFormModal("add", null);
+  }
+
+  function openCourseEditModal(slug) {
+    var course = (state.catalog || []).find(function (c) { return c.slug === slug; });
+    if (!course) {
+      toast("과정을 찾을 수 없습니다");
+      return;
+    }
+    openCourseFormModal("edit", course);
+  }
+
+  function closeCourseAddModal() {
+    if (els.courseAddOverlay) els.courseAddOverlay.hidden = true;
+    if (els.courseAddSlug) {
+      els.courseAddSlug.readOnly = false;
+      els.courseAddSlug.classList.remove("is-readonly");
+    }
+    state.courseFormMode = "add";
+  }
+
+  function submitCourseForm() {
+    var slug = els.courseAddSlug && els.courseAddSlug.value.trim();
+    var title = els.courseAddTitle && els.courseAddTitle.value.trim();
+    var subtitle = els.courseAddSubtitle && els.courseAddSubtitle.value.trim();
+    var description = els.courseAddDesc && els.courseAddDesc.value.trim();
+    if (!slug && title) slug = slugifyTitle(title);
+    if (!slug || !title) {
+      toast("slug와 제목을 입력하세요");
+      return;
+    }
+    var isEdit = state.courseFormMode === "edit";
+    fetch("/api/courses", {
+      method: isEdit ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pin: state.adminPin,
+        catalogSlug: state.activeCatalogSlug,
+        slug: slug,
+        title: title,
+        subtitle: subtitle,
+        description: description
+      })
+    })
+      .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.data.ok) {
+          toast((result.data && result.data.error) || (isEdit ? "과정 수정 실패" : "과정 생성 실패"));
+          return;
+        }
+        closeCourseAddModal();
+        loadCatalogCourses(state.activeCatalogSlug);
+        if (isEdit && state.screen === "course" && state.courseSlug === slug) {
+          loadMindmap(true).then(function () {
+            toast("과정이 수정되었습니다 — 화면을 갱신했습니다");
+          });
+        } else {
+          toast(isEdit ? "과정이 수정되었습니다: " + title : "과정이 추가되었습니다: " + title);
+        }
+      })
+      .catch(function () {
+        toast("서버에 연결할 수 없습니다");
+      });
+  }
+
+  function renderAdminUsersList(users) {
+    if (!els.adminUsersList) return;
+    if (!users || !users.length) {
+      els.adminUsersList.innerHTML = '<p class="admin-hint">등록된 회원이 없습니다.</p>';
+      return;
+    }
+    els.adminUsersList.innerHTML =
+      '<table class="admin-users-table"><thead><tr>' +
+      "<th>이름</th><th>이메일</th><th>목표</th><th>진도</th><th>가입</th>" +
+      "</tr></thead><tbody>" +
+      users.map(function (u) {
+        var goals = (u.goals || "").trim();
+        var goalsShort = goals.length > 40 ? goals.slice(0, 40) + "…" : (goals || "—");
+        return (
+          "<tr>" +
+          "<td>" + esc(u.name || "—") + "</td>" +
+          "<td>" + esc(u.email) + "</td>" +
+          "<td>" + esc(goalsShort) + "</td>" +
+          "<td>" + esc(String(u.courseCount || 0) + "과정 · " + String(u.nodeCount || 0) + "노드") + "</td>" +
+          "<td>" + esc((u.createdAt || "").slice(0, 10)) + "</td>" +
+          "</tr>"
+        );
+      }).join("") +
+      "</tbody></table>";
+  }
+
+  function openAdminUsersModal() {
+    if (!els.adminUsersOverlay) return;
+    els.adminUsersList.innerHTML = '<p class="admin-hint">불러오는 중…</p>';
+    els.adminUsersOverlay.hidden = false;
+    fetch("/api/admin/users?pin=" + encodeURIComponent(state.adminPin))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          els.adminUsersList.innerHTML = '<p class="admin-hint">회원 목록을 불러올 수 없습니다</p>';
+          return;
+        }
+        renderAdminUsersList(data.users);
+      })
+      .catch(function () {
+        els.adminUsersList.innerHTML = '<p class="admin-hint">서버 연결 실패</p>';
+      });
+  }
+
+  function renderCatalogsList() {
     if (!els.catalogList) return;
-    var courses = state.catalog || [];
+    var catalogs = catalogsForDisplay().sort(function (a, b) {
+      return (a.order || 999) - (b.order || 999);
+    });
+    if (!catalogs.length) {
+      els.catalogList.innerHTML = '<p class="catalog-lead">등록된 카탈로그가 없습니다. 운영자 모드에서 「+ 카탈로그 추가」로 시작하세요.</p>';
+      renderResumeBanner();
+      return;
+    }
+    els.catalogList.innerHTML = catalogs.map(function (catalog) {
+      var editBtn = state.adminCatalog
+        ? '<button type="button" class="catalog-card-edit" data-catalog-slug="' + esc(catalog.slug) + '" title="카탈로그 편집">편집</button>'
+        : "";
+      var draftBadge = (state.adminCatalog && !isCatalogPublished(catalog))
+        ? '<span class="catalog-card__draft">비공개</span>'
+        : "";
+      return (
+        '<div class="catalog-card-wrap' + (state.adminCatalog ? " is-admin" : "") + '">' +
+        '<button type="button" class="catalog-card" data-catalog-slug="' + esc(catalog.slug) + '">' +
+        '<span class="catalog-card__title">' + esc(catalog.title || catalog.slug) + draftBadge + "</span>" +
+        (catalog.description ? '<span class="catalog-card__desc">' + esc(catalog.description) + "</span>" : "") +
+        '<span class="catalog-card__meta"><span>과정 열기 →</span></span>' +
+        "</button>" + editBtn + "</div>"
+      );
+    }).join("");
+    renderResumeBanner();
+  }
+
+  function renderCoursesList() {
+    if (!els.catalogList) return;
+    var courses = sortCatalogCourses(state.catalog || []);
     if (!courses.length) {
-      els.catalogList.innerHTML = '<p class="catalog-lead">등록된 과정이 없습니다.</p>';
+      els.catalogList.innerHTML = '<p class="catalog-lead">이 카탈로그에 과정이 없습니다. 운영자 모드에서 「+ 과정 추가」로 시작하세요.</p>';
       return;
     }
     els.catalogList.innerHTML = courses.map(function (course) {
-      var pct = (course.progress && course.progress.percent) || 0;
-      var resume = course.progress && course.progress.lastNodeId;
+      var prog = catalogProgressFor(course);
+      var pct = (prog && prog.percent) || 0;
+      var resume = prog && prog.lastNodeId;
+      var editBtn = state.adminCatalog
+        ? '<button type="button" class="catalog-card-edit" data-slug="' + esc(course.slug) + '" title="과정 편집">편집</button>'
+        : "";
       return (
+        '<div class="catalog-card-wrap' + (state.adminCatalog ? " is-admin" : "") + '">' +
         '<button type="button" class="catalog-card" data-slug="' + esc(course.slug) + '">' +
         '<span class="catalog-card__title">' + esc(course.title || course.slug) + "</span>" +
         (course.subtitle ? '<span class="catalog-card__subtitle">' + esc(course.subtitle) + "</span>" : "") +
@@ -259,56 +760,228 @@
         '<span class="catalog-card__meta">' +
         '<span class="catalog-card__track"><span class="catalog-card__bar" style="width:' + pct + '%"></span></span>' +
         "<span>" + pct + "%" + (resume ? " · 이어하기" : "") + "</span>" +
-        "</span></button>"
+        "</span></button>" + editBtn + "</div>"
       );
     }).join("");
   }
 
-  function loadCatalog() {
+  function renderListPanel() {
+    if (state.screen === "catalogs") renderCatalogsList();
+    else if (state.screen === "catalog") renderCoursesList();
+  }
+
+  function loadAllCourses() {
     return fetch("/api/courses", { credentials: "same-origin" })
-      .then(function (res) { return res.json(); })
+      .then(function (res) {
+        if (!res.ok) throw new Error("api");
+        return res.json();
+      })
+      .then(function (data) {
+        state.allCourses = (data && data.ok && data.courses) ? data.courses : [];
+        return state.allCourses;
+      })
+      .catch(function () {
+        return loadCatalogsIndex().then(function (catalogs) {
+          if (!catalogs.length) {
+            state.allCourses = [];
+            return [];
+          }
+          return Promise.all(catalogs.map(function (cat) {
+            return fetch(staticCatalogCoursesPath(cat.slug))
+              .then(function (res) { return res.ok ? res.json() : { courses: [] }; })
+              .then(function (data) {
+                return enrichCatalogCourses(data.courses || [], cat.slug);
+              })
+              .catch(function () { return []; });
+          })).then(function (lists) {
+            state.allCourses = [].concat.apply([], lists);
+            return state.allCourses;
+          });
+        });
+      });
+  }
+
+  function loadCatalogsIndex() {
+    function loadStaticIndex() {
+      var url = staticCatalogsIndexPath();
+      return fetch(url, { cache: "no-cache" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("static " + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          state.catalogs = data.catalogs || [];
+          return state.catalogs;
+        })
+        .catch(function () {
+          state.catalogs = [];
+          return [];
+        });
+    }
+
+    if (!isLocalDevHost()) return loadStaticIndex();
+
+    return fetch("/api/catalogs", { credentials: "same-origin" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("api");
+        return res.json();
+      })
+      .then(function (data) {
+        state.catalogs = (data && data.ok && data.catalogs) ? data.catalogs : [];
+        return state.catalogs;
+      })
+      .catch(function () {
+        return loadStaticIndex();
+      });
+  }
+
+  function loadCatalogCourses(catalogSlug) {
+    if (!catalogSlug) return Promise.resolve([]);
+    return fetch("/api/courses?catalog=" + encodeURIComponent(catalogSlug), { credentials: "same-origin" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("api");
+        return res.json();
+      })
       .then(function (data) {
         if (data && data.ok && data.courses) {
           state.catalog = data.courses;
         } else {
-          return fetch("data/courses/catalog.json?_=" + Date.now())
-            .then(function (r) { return r.json(); })
-            .then(function (cat) {
-              state.catalog = cat.courses || [];
-            });
+          state.catalog = [];
         }
+        return state.catalog;
       })
       .catch(function () {
-        return fetch("data/courses/catalog.json?_=" + Date.now())
-          .then(function (r) { return r.json(); })
-          .then(function (cat) { state.catalog = cat.courses || []; })
-          .catch(function () { state.catalog = []; });
-      })
-      .then(function () {
-        renderCatalog();
-        return state.catalog;
+        return fetch(staticCatalogCoursesPath(catalogSlug))
+          .then(function (res) {
+            if (!res.ok) throw new Error("static");
+            return res.json();
+          })
+          .then(function (data) {
+            state.catalog = enrichCatalogCourses(data.courses || [], catalogSlug);
+            return state.catalog;
+          })
+          .catch(function () {
+            state.catalog = [];
+            return [];
+          });
       });
   }
 
-  function showCatalog() {
+  function updateCatalogHeader() {
+    if (state.screen === "catalogs") {
+      if (els.catalogTitle) els.catalogTitle.textContent = "카탈로그";
+      if (els.catalogLead) els.catalogLead.textContent = "학습 카탈로그를 선택하세요. 카탈로그 안에 과정이 있습니다.";
+      if (els.catalogGoals) els.catalogGoals.hidden = !state.user;
+      return;
+    }
+    if (state.screen === "catalog") {
+      var meta = (state.catalogs || []).find(function (c) { return c.slug === state.activeCatalogSlug; });
+      if (els.catalogTitle) els.catalogTitle.textContent = (meta && meta.title) || state.activeCatalogSlug || "과정";
+      if (els.catalogLead) els.catalogLead.textContent = (meta && meta.description) || "이 카탈로그의 과정을 선택하세요.";
+      if (els.catalogGoals) els.catalogGoals.hidden = true;
+      if (els.catalogResume) els.catalogResume.hidden = true;
+    }
+  }
+
+  function loadCatalogsHome() {
+    return loadCatalogsIndex()
+      .then(function () {
+        updateCatalogHeader();
+        renderListPanel();
+        loadAllCourses().then(function () {
+          if (state.screen === "catalogs") renderResumeBanner();
+        });
+        return state.catalogs;
+      });
+  }
+
+  function showCatalogsHome() {
     if (state.admin) exitAdmin();
+    state.activeCatalogSlug = null;
     state.courseSlug = null;
     state.data = null;
     state.centerId = null;
     state.explored = [];
-    setScreen("catalog");
-    history.replaceState(null, "", location.pathname + location.search + "#catalog");
-    loadCatalog();
+    state.catalog = [];
+    setScreen("catalogs");
+    history.replaceState(null, "", location.pathname + location.search + "#catalogs");
+    updateGoalsUI();
+    if (els.catalogList && !els.catalogList.querySelector(".catalog-card")) {
+      els.catalogList.innerHTML = '<p class="catalog-lead">불러오는 중…</p>';
+    }
+    return loadCatalogsHome();
   }
 
-  function openCourse(slug, nodeId) {
-    if (!slug) return Promise.resolve(null);
+  function showCatalogCourses(catalogSlug) {
+    if (!catalogSlug) return showCatalogsHome();
     if (state.admin) exitAdmin();
-    state.courseSlug = slug;
-    setScreen("course");
-    return loadCourseProgress(slug).then(function () {
-      return loadMindmap(false, nodeId || state.courseProgress.lastNodeId);
-    });
+    return loadCatalogsIndex()
+      .then(function () {
+        if (!canAccessCatalog(catalogSlug)) {
+          toast("아직 공개되지 않은 카탈로그입니다");
+          return showCatalogsHome();
+        }
+        state.activeCatalogSlug = catalogSlug;
+        state.courseSlug = null;
+        state.data = null;
+        state.centerId = null;
+        state.explored = [];
+        setScreen("catalog");
+        history.replaceState(null, "", location.pathname + location.search + "#catalog/" + encodeURIComponent(catalogSlug));
+        return loadCatalogCourses(catalogSlug);
+      })
+      .then(function (result) {
+        if (!result || state.screen !== "catalog") return result;
+        updateCatalogHeader();
+        renderListPanel();
+        setScreen("catalog");
+        return state.catalog;
+      });
+  }
+
+  function openCourse(slug, nodeId, catalogSlug) {
+    if (!slug) return Promise.resolve(null);
+    var restoreCatalogAdmin = state.adminCatalog;
+    var savedAdminPin = state.adminPin;
+    if (state.admin) exitAdmin();
+    if (state.adminCatalog) exitCatalogAdmin();
+    if (catalogSlug) state.activeCatalogSlug = catalogSlug;
+    else if (!state.activeCatalogSlug) {
+      var found = (state.allCourses || []).find(function (c) { return c.slug === slug; });
+      if (found && found.catalogSlug) state.activeCatalogSlug = found.catalogSlug;
+    }
+
+    function proceed() {
+      var allowed = !state.activeCatalogSlug
+        || canAccessCatalog(state.activeCatalogSlug)
+        || (restoreCatalogAdmin && !isCatalogPublished(catalogBySlug(state.activeCatalogSlug)));
+      if (!allowed) {
+        toast("아직 공개되지 않은 과정입니다");
+        return showCatalogsHome();
+      }
+      if (restoreCatalogAdmin) {
+        state.adminCatalog = true;
+        state.adminPin = savedAdminPin;
+        if (els.btnAdmin) {
+          els.btnAdmin.textContent = "운영중";
+          els.btnAdmin.setAttribute("aria-pressed", "true");
+        }
+      }
+      state.courseSlug = slug;
+      setScreen("course");
+      return loadCourseProgress(slug).then(function () {
+        return loadMindmap(false, nodeId || state.courseProgress.lastNodeId);
+      });
+    }
+
+    if (state.activeCatalogSlug) return proceed();
+    return loadCatalogsIndex()
+      .then(function () { return loadAllCourses(); })
+      .then(function () {
+        var match = (state.allCourses || []).find(function (c) { return c.slug === slug; });
+        if (match && match.catalogSlug) state.activeCatalogSlug = match.catalogSlug;
+        return proceed();
+      });
   }
 
   function updateAccountButton() {
@@ -330,7 +1003,7 @@
       .then(function (data) {
         state.user = data && data.ok ? data.user : null;
         updateAccountButton();
-        if (state.screen === "catalog") loadCatalog();
+        updateGoalsUI();
         return state.user;
       })
       .catch(function () {
@@ -390,8 +1063,16 @@
         }
         state.user = result.data.user;
         updateAccountButton();
+        updateGoalsUI();
         closeAuthOverlay();
-        loadCatalog();
+        if (state.screen === "course" && state.courseSlug) {
+          loadCourseProgress(state.courseSlug).then(function () {
+            renderFocus("static");
+            updateProgressUI();
+          });
+        } else {
+          loadCatalogsHome();
+        }
         toast(state.authMode === "register" ? "가입되었습니다" : "로그인되었습니다");
       })
       .catch(function () {
@@ -404,11 +1085,14 @@
       .then(function () {
         state.user = null;
         updateAccountButton();
+        updateGoalsUI();
+        loadCatalogsHome();
         toast("로그아웃되었습니다");
       })
       .catch(function () {
         state.user = null;
         updateAccountButton();
+        updateGoalsUI();
       });
   }
 
@@ -430,7 +1114,6 @@
         if (ev.key === "Enter") submitAuth();
       });
     }
-    fetchCurrentUser();
   }
 
   function esc(s) {
@@ -464,6 +1147,109 @@
 
   function nextTier() {
     return getDepth() + 1;
+  }
+
+  function lessonNumFromTitle(title) {
+    var m = (title || "").match(/^제\s*(\d+)\s*과/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  function isLessonTitle(title) {
+    return /^제\s*\d+\s*과/.test(title || "");
+  }
+
+  function flatLessonCatalogList() {
+    if (!state.data) return null;
+    var kids = childrenOf(state.data.rootId);
+    if (kids.length < 3) return null;
+    if (!kids.every(function (n) { return childrenOf(n.id).length === 0; })) return null;
+    var lessonCount = kids.filter(function (n) { return isLessonTitle(n.title); }).length;
+    if (lessonCount < Math.max(3, Math.ceil(kids.length * 0.75))) return null;
+    return kids.slice().sort(function (a, b) {
+      return lessonNumFromTitle(a.title) - lessonNumFromTitle(b.title);
+    });
+  }
+
+  function isFlatLessonCatalogAtRoot() {
+    return !!flatLessonCatalogList();
+  }
+
+  function isLinearChainAtRoot() {
+    if (!state.data) return false;
+    var first = childrenOf(state.data.rootId);
+    if (first.length !== 1) return false;
+    return linearChainFrom(first[0].id).length >= 5;
+  }
+
+  function isLinearCourse() {
+    if (!state.data) return false;
+    if (state.data.meta && state.data.meta.layout === "linear") return true;
+    if (isFlatLessonCatalogAtRoot()) return true;
+    if (isLinearChainAtRoot()) return true;
+    return false;
+  }
+
+  function linearCourseDebugInfo() {
+    if (!state.data) return { ok: false };
+    var rootId = state.data.rootId;
+    var rootKids = childrenOf(rootId);
+    var flat = flatLessonCatalogList();
+    var chainLen = rootKids.length === 1 ? linearChainFrom(rootKids[0].id).length : 0;
+    return {
+      courseSlug: state.courseSlug,
+      metaLayout: state.data.meta && state.data.meta.layout,
+      rootChildCount: rootKids.length,
+      rootChildTitles: rootKids.slice(0, 3).map(function (n) { return n.title; }),
+      flatCatalogCount: flat ? flat.length : 0,
+      chainLen: chainLen,
+      isLinear: isLinearCourse(),
+      appJsHint: "v11-debug"
+    };
+  }
+
+  function linearChainFrom(startId) {
+    var chain = [];
+    var cur = startId;
+    var guard = 0;
+    while (cur && guard < 256) {
+      var n = nodeById(cur);
+      if (!n) break;
+      chain.push(n);
+      var kids = childrenOf(cur);
+      if (kids.length !== 1) break;
+      cur = kids[0].id;
+      guard += 1;
+    }
+    return chain;
+  }
+
+  function linearCourseLessons() {
+    if (!state.data) return [];
+    var first = childrenOf(state.data.rootId);
+    if (!first.length) return [];
+    return linearChainFrom(first[0].id);
+  }
+
+  function crossChildrenOf(parentId) {
+    if (!state.data) return [];
+    return state.data.edges
+      .filter(function (e) { return e.from === parentId && e.type === "cross"; })
+      .map(function (e) { return nodeById(e.to); })
+      .filter(Boolean);
+  }
+
+  function visibleChildren(parentId) {
+    if (!state.data) return [];
+    if (parentId === state.data.rootId && isLinearCourse()) {
+      var flat = flatLessonCatalogList();
+      if (flat) return flat;
+      return linearCourseLessons();
+    }
+    if (isLinearCourse() && parentId !== state.data.rootId) {
+      var next = crossChildrenOf(parentId);
+      if (next.length) return next;
+    }
+    return childrenOf(parentId);
   }
 
   function normalizeMindmap(data) {
@@ -1015,12 +1801,18 @@
   function renderDepthBadge(atHome) {
     if (!els.focusDepth) return;
     if (atHome) {
-      els.focusDepth.textContent = "시작 · 1단계 목록";
+      els.focusDepth.textContent = isLinearCourse() ? "시작 · 차례" : "시작 · 1단계 목록";
       els.focusDepth.className = "focus-depth is-home";
       els.focusDepth.hidden = false;
       return;
     }
-    els.focusDepth.textContent = getDepth() + "단계";
+    if (isLinearCourse()) {
+      var node = nodeById(state.centerId);
+      var m = node && (node.title || "").match(/^제\s*\d+\s*과/);
+      els.focusDepth.textContent = m ? m[0] : getDepth() + "과";
+    } else {
+      els.focusDepth.textContent = getDepth() + "단계";
+    }
     els.focusDepth.className = "focus-depth";
     els.focusDepth.hidden = false;
   }
@@ -1049,10 +1841,14 @@
 
   function renderOutlineTreeLink(node, currentId, pathSet) {
     if (!node) return "";
+    var tierHtml = "";
+    if (!isLinearCourse()) {
+      tierHtml = '<span class="outline-tree-tier">' + nodeTier(node.id) + "단계</span>";
+    }
     return (
       '<button type="button" class="' + outlineLinkClasses(node.id, currentId, pathSet) + '" data-id="' +
       esc(node.id) + '">' +
-      '<span class="outline-tree-tier">' + nodeTier(node.id) + "단계</span>" +
+      tierHtml +
       '<span class="outline-tree-title">' + esc(node.title) + "</span>" +
       "</button>"
     );
@@ -1076,11 +1872,9 @@
   }
 
   function scrollFocusToTop() {
-    var scroller = document.querySelector(".focus-app");
-    if (!scroller) return;
-    scroller.scrollTop = 0;
+    window.scrollTo(0, 0);
     requestAnimationFrame(function () {
-      scroller.scrollTop = 0;
+      window.scrollTo(0, 0);
     });
   }
 
@@ -1167,7 +1961,7 @@
     var navigate = viewMode === "navigate";
     var intro = viewMode === "intro";
 
-    var kids = childrenOf(state.centerId);
+    var kids = visibleChildren(state.centerId);
     var hasKids = kids.length > 0;
     var revealEnd = 0;
 
@@ -1205,9 +1999,15 @@
     els.childrenPanel.classList.toggle("is-admin-home", atHome && hasKids && state.admin);
     if (els.childrenHeading) {
       if (atHome) {
-        els.childrenHeading.textContent = hasKids
-          ? (state.admin ? "1단계 주제 · 하위 단계 요약" : "1단계 주제를 선택하세요")
-          : "1단계 주제가 없습니다";
+        if (isLinearCourse() && hasKids) {
+          els.childrenHeading.textContent = "과 목록 · " + kids.length + "과";
+        } else {
+          els.childrenHeading.textContent = hasKids
+            ? (state.admin ? "1단계 주제 · 하위 단계 요약" : "1단계 주제를 선택하세요")
+            : "1단계 주제가 없습니다";
+        }
+      } else if (isLinearCourse()) {
+        els.childrenHeading.textContent = "다음 과 · 이어서";
       } else {
         els.childrenHeading.textContent = nextTier() + "단계 · 이어서 살펴보기";
       }
@@ -1226,7 +2026,8 @@
     if (showChildren) {
       var chipBase = staticView ? 0 : (navigate ? 0.05 : revealEnd + 0.2);
       var chipTier = atHome ? 1 : nextTier();
-      var showL1AdminMeta = atHome && state.admin;
+      var hideChipTier = isLinearCourse();
+      var showL1AdminMeta = atHome && state.admin && !isLinearCourse();
       els.childrenList.innerHTML = kids.map(function (child, i) {
         var adminMeta = showL1AdminMeta
           ? '<span class="chip-admin-meta">' + esc(l1AdminMeta(child.id)) + "</span>"
@@ -1234,11 +2035,18 @@
         var chipBody = showL1AdminMeta
           ? '<span class="chip-body"><span class="chip-title">' + esc(child.title) + "</span>" + adminMeta + "</span>"
           : '<span class="chip-title">' + esc(child.title) + "</span>";
+        var tierLabel = hideChipTier
+          ? (atHome ? "" : "다음")
+          : (chipTier + "단계");
+        var tierHtml = tierLabel
+          ? '<span class="chip-tier">' + tierLabel + "</span>"
+          : "";
         return (
           '<button type="button" class="child-chip' + (atHome ? " is-l1" : "") +
+          (hideChipTier && atHome ? " is-linear-lesson" : "") +
           (showL1AdminMeta ? " has-admin-meta" : "") + '" data-id="' + esc(child.id) + '" ' +
           'style="animation-delay:' + (chipBase + i * 0.09) + 's">' +
-          '<span class="chip-tier">' + chipTier + "단계</span>" +
+          tierHtml +
           chipBody + "</button>"
         );
       }).join("");
@@ -1248,7 +2056,11 @@
 
     els.btnBack.hidden = atHome;
     if (!atHome) {
-      els.btnBack.textContent = getDepth() === 1 ? "← 1단계 목록" : "← 이전";
+      if (isLinearCourse() && isAtRoot() === false) {
+        els.btnBack.textContent = getDepth() <= 1 ? "← 차례" : "← 이전";
+      } else {
+        els.btnBack.textContent = getDepth() === 1 ? "← 1단계 목록" : "← 이전";
+      }
     }
     renderBreadcrumb();
     renderOutlineTreePanel();
@@ -1259,13 +2071,30 @@
     updateHash();
   }
 
+  function lessonAccessBlocked(id) {
+    if (state.user || state.admin) return false;
+    if (!state.data) return false;
+    return id && id !== state.data.rootId;
+  }
+
+  function promptLessonLogin() {
+    toast("제1과부터는 로그인이 필요합니다");
+    openAuthOverlay("login");
+  }
+
   function openNode(id, pushTrail, viewMode) {
     if (!nodeById(id)) return;
+    if (lessonAccessBlocked(id)) {
+      promptLessonLogin();
+      return;
+    }
     if (state.admin) syncEditorToState();
     if (id === state.data.rootId) {
       state.explored = [state.data.rootId];
     } else if (pushTrail !== false) {
-      if (isAtRoot()) {
+      if (isAtRoot() && isLinearCourse()) {
+        state.explored = buildExploredPath(id);
+      } else if (isAtRoot()) {
         state.explored = [state.data.rootId, id];
       } else {
         var idx = state.explored.indexOf(id);
@@ -1304,7 +2133,16 @@
   }
 
   function resetView() {
-    showCatalog();
+    if (state.screen === "course") {
+      if (state.activeCatalogSlug) showCatalogCourses(state.activeCatalogSlug);
+      else showCatalogsHome();
+      return;
+    }
+    if (state.screen === "catalog") {
+      showCatalogsHome();
+      return;
+    }
+    showCatalogsHome();
   }
 
   function toggleChildren() {
@@ -1763,7 +2601,7 @@
     return fetch("/api/mindmap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.assign({ courseSlug: state.courseSlug || "who-is-god" }, state.data))
+      body: JSON.stringify(Object.assign({ courseSlug: state.courseSlug }, state.data))
     }).then(function (res) {
       if (!res.ok) throw new Error("save failed");
       return res.json();
@@ -1826,7 +2664,11 @@
 
   function parseHash() {
     var h = location.hash || "";
-    if (h === "#catalog" || h === "#/" || h === "") return { screen: "catalog" };
+    if (h === "#catalogs" || h === "#catalog" || h === "#/" || h === "") return { screen: "catalogs" };
+    var catalogMatch = h.match(/^#catalog\/([^/]+)$/);
+    if (catalogMatch) {
+      return { screen: "catalog", catalogSlug: decodeURIComponent(catalogMatch[1]) };
+    }
     var courseMatch = h.match(/^#course\/([^/]+)(?:\/n\/(.+))?$/);
     if (courseMatch) {
       return {
@@ -1836,18 +2678,34 @@
       };
     }
     if (h.indexOf("#n/") === 0) {
-      return { screen: "course", slug: state.courseSlug || "who-is-god", nodeId: decodeURIComponent(h.slice(3)) };
+      return {
+        screen: "course",
+        slug: state.courseSlug || "",
+        nodeId: decodeURIComponent(h.slice(3))
+      };
     }
-    return { screen: "catalog" };
+    return { screen: "catalogs" };
   }
 
   function routeFromHash() {
     var route = parseHash();
-    if (route.screen === "catalog") {
-      showCatalog();
-      return Promise.resolve(null);
+    if (route.screen === "catalogs") {
+      return showCatalogsHome();
     }
-    return openCourse(route.slug, route.nodeId);
+    if (route.screen === "catalog" && route.catalogSlug) {
+      return showCatalogCourses(route.catalogSlug);
+    }
+    if (route.screen === "course" && route.slug) {
+      if (route.slug !== state.courseSlug || !state.data) {
+        return openCourse(route.slug, route.nodeId);
+      }
+      if (route.nodeId && nodeById(route.nodeId) && route.nodeId !== state.centerId) {
+        state.explored = buildExploredPath(route.nodeId);
+        openNode(route.nodeId, false, "navigate");
+      }
+      return Promise.resolve(state.data);
+    }
+    return showCatalogsHome();
   }
 
   function verifyPin(pin) {
@@ -1888,7 +2746,8 @@
       })
       .then(function (data) {
         state.data = normalizeMindmap(data);
-        var targetId = preferNodeId || state.courseProgress.lastNodeId;
+        var allowDeep = state.user || state.admin;
+        var targetId = allowDeep ? (preferNodeId || state.courseProgress.lastNodeId) : null;
         if (targetId && nodeById(targetId)) {
           state.explored = buildExploredPath(targetId);
           state.centerId = targetId;
@@ -1937,24 +2796,89 @@
   function ensureCourseLoaded() {
     if (state.data && state.courseSlug) return Promise.resolve(state.data);
     if (state.courseSlug) return loadMindmap(true);
-    return loadCatalog().then(function () {
-      var first = state.catalog && state.catalog[0];
-      if (!first) return null;
-      return openCourse(first.slug).then(function () { return state.data; });
-    });
+    return Promise.resolve(null);
   }
 
   function bindEvents() {
     if (els.catalogList) {
       els.catalogList.addEventListener("click", function (e) {
+        var editBtn = e.target.closest(".catalog-card-edit");
+        if (editBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (editBtn.dataset.catalogSlug) {
+            openCatalogEditModal(editBtn.dataset.catalogSlug);
+            return;
+          }
+          if (editBtn.dataset.slug) {
+            openCourseEditModal(editBtn.dataset.slug);
+            return;
+          }
+        }
         var card = e.target.closest(".catalog-card");
-        if (!card || !card.dataset.slug) return;
-        openCourse(card.dataset.slug);
+        if (!card) return;
+        if (card.dataset.catalogSlug) {
+          showCatalogCourses(card.dataset.catalogSlug);
+          return;
+        }
+        if (card.dataset.slug) {
+          openCourse(card.dataset.slug);
+        }
+      });
+    }
+    if (els.btnBackToCatalogs) {
+      els.btnBackToCatalogs.addEventListener("click", function () {
+        showCatalogsHome();
+      });
+    }
+    if (els.btnCatalogResume) {
+      els.btnCatalogResume.addEventListener("click", function () {
+        var slug = els.btnCatalogResume.dataset.slug;
+        var nodeId = els.btnCatalogResume.dataset.nodeId || null;
+        var catalogSlug = els.btnCatalogResume.dataset.catalogSlug || null;
+        if (catalogSlug) state.activeCatalogSlug = catalogSlug;
+        if (slug) openCourse(slug, nodeId, catalogSlug);
+      });
+    }
+    if (els.btnSaveGoals) els.btnSaveGoals.addEventListener("click", saveGoals);
+    if (els.btnAddCatalog) els.btnAddCatalog.addEventListener("click", openCatalogAddModal);
+    if (els.btnAddCourse) els.btnAddCourse.addEventListener("click", openCourseAddModal);
+    if (els.catalogFormCancel) els.catalogFormCancel.addEventListener("click", closeCatalogFormModal);
+    if (els.catalogFormSubmit) els.catalogFormSubmit.addEventListener("click", submitCatalogForm);
+    if (els.catalogFormTitleInput) {
+      els.catalogFormTitleInput.addEventListener("input", function () {
+        if (els.catalogFormSlug && !els.catalogFormSlug.value.trim()) {
+          els.catalogFormSlug.value = slugifyTitle(els.catalogFormTitleInput.value);
+        }
+      });
+    }
+    if (els.btnAdminUsers) els.btnAdminUsers.addEventListener("click", openAdminUsersModal);
+    if (els.btnExitCatalogAdmin) els.btnExitCatalogAdmin.addEventListener("click", exitCatalogAdmin);
+    if (els.courseAddCancel) els.courseAddCancel.addEventListener("click", closeCourseAddModal);
+    if (els.courseAddSubmit) els.courseAddSubmit.addEventListener("click", submitCourseForm);
+    if (els.courseAddTitle) {
+      els.courseAddTitle.addEventListener("input", function () {
+        if (els.courseAddSlug && !els.courseAddSlug.value.trim()) {
+          els.courseAddSlug.value = slugifyTitle(els.courseAddTitle.value);
+        }
+      });
+    }
+    if (els.adminUsersClose) {
+      els.adminUsersClose.addEventListener("click", function () {
+        if (els.adminUsersOverlay) els.adminUsersOverlay.hidden = true;
       });
     }
     if (els.btnMarkComplete) {
       els.btnMarkComplete.addEventListener("click", function () {
         if (!state.centerId) return;
+        var done = state.courseProgress.nodes[state.centerId] === "completed";
+        if (done) {
+          if (!window.confirm("이해 완료 표시를 취소할까요?")) return;
+          recordProgress(state.centerId, "visited", { allowDowngrade: true });
+          toast("이해 완료 표시를 취소했습니다");
+          return;
+        }
+        if (!window.confirm("이 주제를 이해 완료로 표시할까요?")) return;
         recordProgress(state.centerId, "completed");
         toast("이해 완료로 표시했습니다");
       });
@@ -1996,6 +2920,21 @@
         exitAdmin();
         return;
       }
+      if (state.adminCatalog && (state.screen === "catalogs" || state.screen === "catalog")) {
+        exitCatalogAdmin();
+        return;
+      }
+      if (state.screen === "catalogs" || state.screen === "catalog") {
+        if (SKIP_ADMIN_PIN) {
+          enterCatalogAdmin("");
+          return;
+        }
+        els.adminPin.value = "";
+        els.adminOverlay.hidden = false;
+        els.adminPin.focus();
+        els.adminOverlay.dataset.mode = "catalog";
+        return;
+      }
       ensureCourseLoaded()
         .then(function (data) {
           if (!data) {
@@ -2013,6 +2952,7 @@
           els.adminPin.value = "";
           els.adminOverlay.hidden = false;
           els.adminPin.focus();
+          els.adminOverlay.dataset.mode = "course";
         })
         .catch(function () {
           toast("운영자 모드 진입 오류 — 새로고침 후 다시 시도하세요");
@@ -2024,30 +2964,44 @@
     els.adminLogin.addEventListener("click", function () {
       var btn = els.adminLogin;
       var pin = els.adminPin.value;
+      var catalogMode = els.adminOverlay && els.adminOverlay.dataset.mode === "catalog";
       btn.disabled = true;
-      ensureCourseLoaded()
-        .then(function (data) {
-          if (!data) return null;
-          return verifyPin(pin);
-        })
-        .then(function (result) {
-          if (!result) return;
-          if (result.ok) {
-            enterAdmin();
-            return;
-          }
-          if (result.reason === "server") {
-            toast("서버에 연결할 수 없습니다 — serve.bat으로 실행하세요");
-            return;
-          }
-          toast("PIN이 올바르지 않습니다");
-        })
-        .catch(function () {
-          toast("로그인 오류 — 새로고침 후 다시 시도하세요");
-        })
-        .finally(function () {
-          btn.disabled = false;
-        });
+      var chain = catalogMode
+        ? verifyPin(pin).then(function (result) {
+            if (!result) return null;
+            if (result.ok) {
+              enterCatalogAdmin(pin);
+              return true;
+            }
+            if (result.reason === "server") {
+              toast("서버에 연결할 수 없습니다 — serve.bat으로 실행하세요");
+              return null;
+            }
+            toast("PIN이 올바르지 않습니다");
+            return null;
+          })
+        : ensureCourseLoaded()
+          .then(function (data) {
+            if (!data) return null;
+            return verifyPin(pin);
+          })
+          .then(function (result) {
+            if (!result) return;
+            if (result.ok) {
+              enterAdmin();
+              return;
+            }
+            if (result.reason === "server") {
+              toast("서버에 연결할 수 없습니다 — serve.bat으로 실행하세요");
+              return;
+            }
+            toast("PIN이 올바르지 않습니다");
+          });
+      chain.catch(function () {
+        toast("로그인 오류 — 새로고침 후 다시 시도하세요");
+      }).finally(function () {
+        btn.disabled = false;
+      });
     });
     els.adminPin.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") els.adminLogin.click();
@@ -2071,44 +3025,108 @@
     ["editTitle", "editDesc", "editScripture"].forEach(function (id) {
       $(id).addEventListener("input", onEditorInput);
     });
-    window.addEventListener("hashchange", function () {
-      var id = parseHash();
-      if (id && nodeById(id) && id !== state.centerId) {
-        state.explored = buildExploredPath(id);
-        openNode(id, false, "navigate");
+  }
+
+  function initPwaInstallBar() {
+    var ua = navigator.userAgent || "";
+    var deferredPrompt = null;
+    var isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+    var isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+    if (isStandalone) return;
+
+    if (/KAKAOTALK/i.test(ua)) {
+      location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+      return;
+    }
+
+    var bar = document.createElement("div");
+    bar.id = "pwa-install-bar";
+    bar.className = "pwa-install-bar";
+    bar.setAttribute("role", "note");
+    bar.innerHTML =
+      '<button type="button" class="pwa-install-bar__close" aria-label="닫기" id="pwa-install-close">×</button>' +
+      '<div class="pwa-install-bar__title">VisionforLife 앱 설치</div>' +
+      '<div id="pwa-install-btn-wrap" class="pwa-install-bar__btn-wrap">' +
+      '<button type="button" id="pwa-install-btn" class="pwa-install-bar__install">앱 설치하기</button>' +
+      "</div>" +
+      '<div id="pwa-install-msg" class="pwa-install-bar__msg"></div>';
+    document.body.appendChild(bar);
+
+    var msg = document.getElementById("pwa-install-msg");
+    var btnWrap = document.getElementById("pwa-install-btn-wrap");
+    var btn = document.getElementById("pwa-install-btn");
+    var waitGuide = "설치가 완료될 때까지 잠시 기다려 주세요.";
+    var menuFallback =
+      "설치하기 버튼이 보이지 않거나<br>브라우저 오른쪽 위 <b>⋮</b> 메뉴에서<br><b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 선택해 주세요.";
+    var menuGuide = isIOS
+      ? "Safari 하단 <b>공유(⬆︎)</b> → <b>홈 화면에 추가</b>를 누르신 뒤,<br>" + waitGuide
+      : menuFallback + "<br><br>" + waitGuide;
+    var btnGuide = "<b>앱 설치하기</b> 버튼을 누르신 뒤,<br>" + waitGuide + "<br><br>" + menuFallback;
+
+    function renderPwaBar() {
+      if (msg) msg.innerHTML = menuGuide;
+    }
+    function showInstallBtn() {
+      if (isIOS || !deferredPrompt || !btnWrap || !msg) return;
+      btnWrap.classList.add("is-visible");
+      msg.innerHTML = btnGuide;
+    }
+
+    renderPwaBar();
+    var closeBtn = document.getElementById("pwa-install-close");
+    if (closeBtn) closeBtn.addEventListener("click", function () { bar.remove(); });
+    if (btn) {
+      btn.addEventListener("click", function () {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.finally(function () {
+          deferredPrompt = null;
+          if (btnWrap) btnWrap.classList.remove("is-visible");
+        });
+      });
+    }
+
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      showInstallBtn();
+    });
+  }
+
+  function ensureCatalogsVisible() {
+    if (state.screen !== "catalogs" || !els.catalogList) return;
+    if (els.catalogList.querySelector(".catalog-card")) return;
+    showCatalogsHome();
+  }
+
+  function bootApp() {
+    initFontSize();
+    initAiAskMode();
+    initAdminPanelResize();
+    initAuth();
+    initPwaInstallBar();
+    bindEvents();
+    window.addEventListener("hashchange", function () { routeFromHash(); });
+    window.addEventListener("pageshow", function () {
+      ensureCatalogsVisible();
+    });
+    routeFromHash();
+    fetchCurrentUser().then(function () {
+      updateGoalsUI();
+      if (state.screen === "catalogs") {
+        loadAllCourses().then(function () {
+          if (state.screen === "catalogs") renderResumeBanner();
+        });
       }
     });
   }
 
+  bootApp();
   if ("serviceWorker" in navigator) {
-    var swReloading = false;
     var swVerMatch = (document.querySelector('script[src*="app.js"]') || {}).src || "";
     var swVer = (swVerMatch.match(/[?&]v=(\d+)/) || [])[1] || "1";
-    navigator.serviceWorker.addEventListener("controllerchange", function () {
-      if (swReloading) return;
-      if (saveInFlight) return;
-      swReloading = true;
-      window.location.reload();
-    });
-    navigator.serviceWorker.register("sw.js?v=" + swVer, { updateViaCache: "none" })
-      .then(function (reg) {
-        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-        reg.update();
-      })
+    navigator.serviceWorker.register(assetUrl("sw.js") + "?v=" + swVer, { updateViaCache: "none" })
       .catch(function () {});
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) return;
-      navigator.serviceWorker.getRegistration().then(function (reg) {
-        if (reg) reg.update();
-      });
-    });
   }
-
-  initFontSize();
-  initAiAskMode();
-  initAdminPanelResize();
-  initAuth();
-  bindEvents();
-  window.addEventListener("hashchange", function () { routeFromHash(); });
-  fetchCurrentUser().then(function () { return routeFromHash(); });
 })();

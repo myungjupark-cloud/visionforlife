@@ -46,26 +46,37 @@ from auth_store import (
     get_all_progress_summary,
     get_course_progress,
     init_db,
+    list_users,
     login_user,
     logout_user,
     register_user,
+    update_user_goals,
     upsert_progress,
     user_from_token,
 )
 from courses import (
-    course_meta_from_catalog,
+    catalog_meta,
+    create_catalog,
+    create_course,
+    find_catalog_for_course,
     is_valid_slug,
     learnable_node_ids,
-    load_catalog,
+    list_all_courses,
+    list_catalog_slugs,
+    load_catalog_courses,
+    load_catalogs_index,
     load_mindmap,
     save_mindmap,
+    sync_catalog_from_mindmap,
+    update_catalog,
+    update_course,
 )
 
 
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-DEFAULT_COURSE = "who-is-god"
+DEFAULT_COURSE = ""
 
 MINDMAP_PATH = os.path.join(ROOT, "data", "courses", DEFAULT_COURSE, "mindmap.json")
 
@@ -194,8 +205,41 @@ def course_progress_payload(slug: str, summary: dict) -> dict:
     }
 
 
+def admin_pin_required() -> bool:
+    return bool(load_config().get("adminPinRequired", True))
+
+
+def verify_admin_pin(data: dict, handler: SimpleHTTPRequestHandler | None = None) -> bool:
+    if not admin_pin_required():
+        return True
+    if handler and _is_localhost(handler):
+        return True
+    pin = str(data.get("pin", "")).strip()
+    expected = str(load_config().get("adminPin", "4464572")).strip()
+    return pin == expected
+
+
+def _is_localhost(handler: SimpleHTTPRequestHandler) -> bool:
+    host = (handler.headers.get("Host") or "").split(":")[0].lower()
+    return host in ("localhost", "127.0.0.1")
+
+
+def admin_pin_ok(handler: SimpleHTTPRequestHandler, pin: str) -> bool:
+    if not admin_pin_required():
+        return True
+    if _is_localhost(handler):
+        return True
+    expected = str(load_config().get("adminPin", "4464572")).strip()
+    return str(pin or "").strip() == expected
+
+
 def resolve_course_slug(raw: str | None) -> str:
-    slug = (raw or DEFAULT_COURSE).strip()
+    slug = (raw or "").strip()
+    if not slug:
+        cfg = load_config()
+        slug = str(cfg.get("defaultCourse") or "").strip()
+    if not slug:
+        raise ValueError("invalid course slug")
     if not is_valid_slug(slug):
         raise ValueError("invalid course slug")
     return slug
@@ -382,6 +426,8 @@ def rag_system_prompt() -> str:
         "당신은 회복역·라이프스터디·워치만 니·위트니스 리 등 주님의 회복 자료에 정통하고 깊이 있는 전문가입니다. "
 
         "질문자의 질문 목적을 잘 이해하고 답하세요. "
+
+        "장중하고 깊이 있는 문장으로 답하세요. "
 
         "아래 [검색 자료]만 근거로 답하되, 답변 본문에는 출처 번호·각주·인용 표기를 넣지 마세요. "
 
@@ -1001,7 +1047,7 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
             self.send_header("Access-Control-Allow-Origin", origin)
 
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
 
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
@@ -1085,24 +1131,50 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             send_json(self, 200, {"ok": bool(user), "user": user})
             return
 
+        if path == "/api/admin/users":
+            query = parse_qs(urlparse(self.path).query)
+            pin = str((query.get("pin") or [""])[0]).strip()
+            if not admin_pin_ok(self, pin):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+            send_json(self, 200, {"ok": True, "users": list_users()})
+            return
+
+        if path == "/api/catalogs":
+            index = load_catalogs_index()
+            send_json(self, 200, {"ok": True, "catalogs": index.get("catalogs", [])})
+            return
+
         if path == "/api/courses":
-            catalog = load_catalog()
+            query = parse_qs(urlparse(self.path).query)
+            catalog_slug = str((query.get("catalog") or [""])[0]).strip()
             token = session_token_from_handler(self)
             user = user_from_token(token)
             summaries = get_all_progress_summary(user["id"]) if user else {}
+
+            if catalog_slug:
+                if not catalog_meta(catalog_slug):
+                    send_json(self, 404, {"ok": False, "error": "catalog not found"})
+                    return
+                course_items = load_catalog_courses(catalog_slug).get("courses", [])
+            else:
+                course_items = list_all_courses()
+
             courses_out = []
-            for course in catalog.get("courses", []):
+            for course in course_items:
                 slug = str(course.get("slug", "")).strip()
                 if not slug:
                     continue
                 item = dict(course)
+                if catalog_slug:
+                    item["catalogSlug"] = catalog_slug
                 summary = summaries.get(slug, {})
                 if user or summary:
                     item["progress"] = course_progress_payload(slug, summary)
                 else:
                     item["progress"] = None
                 courses_out.append(item)
-            send_json(self, 200, {"ok": True, "courses": courses_out})
+            send_json(self, 200, {"ok": True, "courses": courses_out, "catalog": catalog_slug or None})
             return
 
         if path == "/api/progress":
@@ -1134,6 +1206,10 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
         if path == "/api/admin/verify":
 
             data = read_json_body(self)
+
+            if not admin_pin_required():
+                send_json(self, 200, {"ok": True})
+                return
 
             pin = str(data.get("pin", "")).strip()
 
@@ -1185,6 +1261,64 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             send_json_with_cookies(self, 200, {"ok": True}, [f"{SESSION_COOKIE}=; Path=/; HttpOnly; Max-Age=0"])
             return
 
+        if path == "/api/auth/goals":
+            token = session_token_from_handler(self)
+            user = user_from_token(token)
+            if not user:
+                send_json(self, 401, {"ok": False, "error": "login required"})
+                return
+            data = read_json_body(self)
+            try:
+                updated = update_user_goals(user["id"], str(data.get("goals") or ""))
+            except ValueError as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "user": updated})
+            return
+
+        if path == "/api/catalogs":
+            data = read_json_body(self)
+            if not verify_admin_pin(data, self):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+            slug = str(data.get("slug") or "").strip()
+            title = str(data.get("title") or "").strip()
+            description = str(data.get("description") or "").strip()
+            if not slug or not title:
+                send_json(self, 400, {"ok": False, "error": "slug and title required"})
+                return
+            try:
+                entry = create_catalog(slug, title, description)
+            except ValueError as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "catalog": entry})
+            return
+
+        if path == "/api/courses":
+            data = read_json_body(self)
+            if not verify_admin_pin(data, self):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+            catalog_slug = str(data.get("catalogSlug") or data.get("catalog") or "").strip()
+            slug = str(data.get("slug") or "").strip()
+            title = str(data.get("title") or "").strip()
+            subtitle = str(data.get("subtitle") or "").strip()
+            description = str(data.get("description") or "").strip()
+            if not catalog_slug:
+                send_json(self, 400, {"ok": False, "error": "catalogSlug required"})
+                return
+            if not slug or not title:
+                send_json(self, 400, {"ok": False, "error": "slug and title required"})
+                return
+            try:
+                entry = create_course(catalog_slug, slug, title, subtitle, description)
+            except ValueError as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "course": entry})
+            return
+
         if path == "/api/progress":
             token = session_token_from_handler(self)
             user = user_from_token(token)
@@ -1231,10 +1365,19 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
             meta["updatedAt"] = datetime.now(timezone.utc).astimezone().isoformat()
 
+            root_id = data.get("rootId")
+            for node in data.get("nodes") or []:
+                if node.get("id") == root_id:
+                    root_title = str(node.get("title") or "").strip()
+                    if root_title:
+                        meta["title"] = root_title
+                    break
+
             rel_path = f"data/courses/{slug}/mindmap.json"
             save_mindmap(slug, data)
+            catalog_synced = sync_catalog_from_mindmap(slug, data)
 
-            payload: dict = {"ok": True, "path": rel_path, "courseSlug": slug}
+            payload: dict = {"ok": True, "path": rel_path, "courseSlug": slug, "catalogSynced": catalog_synced}
 
             cfg = load_config()
 
@@ -1283,6 +1426,53 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             return
 
 
+
+        self.send_error(404)
+
+
+
+    def do_PATCH(self) -> None:
+        path = urlparse(self.path).path
+
+        if path == "/api/catalogs":
+            data = read_json_body(self)
+            if not verify_admin_pin(data, self):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+            slug = str(data.get("slug") or "").strip()
+            title = str(data.get("title") or "").strip()
+            description = str(data.get("description") or "").strip()
+            if not slug or not title:
+                send_json(self, 400, {"ok": False, "error": "slug and title required"})
+                return
+            try:
+                entry = update_catalog(slug, title, description)
+            except ValueError as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "catalog": entry})
+            return
+
+        if path == "/api/courses":
+            data = read_json_body(self)
+            if not verify_admin_pin(data, self):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+            catalog_slug = str(data.get("catalogSlug") or data.get("catalog") or "").strip()
+            slug = str(data.get("slug") or "").strip()
+            title = str(data.get("title") or "").strip()
+            subtitle = str(data.get("subtitle") or "").strip()
+            description = str(data.get("description") or "").strip()
+            if not catalog_slug or not slug or not title:
+                send_json(self, 400, {"ok": False, "error": "catalogSlug, slug and title required"})
+                return
+            try:
+                entry = update_course(catalog_slug, slug, title, subtitle, description)
+            except ValueError as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "course": entry})
+            return
 
         self.send_error(404)
 
@@ -1343,7 +1533,7 @@ def remote_public_url(cfg: dict) -> str:
 
 def print_access_urls(port: int, cfg: dict | None = None) -> None:
     cfg = cfg or load_config()
-    print(f"Faith Mindmap → http://localhost:{port}/")
+    print(f"VisionforLife -> http://localhost:{port}/")
     print("  같은 Wi-Fi 폰에서 접속:")
     lan_ips = [ip for ip in lan_ip_addresses() if not is_tailscale_ip(ip)]
     if lan_ips:
@@ -1352,7 +1542,7 @@ def print_access_urls(port: int, cfg: dict | None = None) -> None:
     else:
         print("    (PC IP를 찾지 못했습니다 — ipconfig 로 IPv4 확인)")
     ts_ips = tailscale_ip_addresses()
-    print("  외출(LTE) — Tailscale (집 PC 켜진 상태):")
+    print("  외출(LTE) - Tailscale (집 PC 켜진 상태):")
     if ts_ips:
         for ip in ts_ips:
             print(f"    http://{ip}:{port}/")
@@ -1360,7 +1550,7 @@ def print_access_urls(port: int, cfg: dict | None = None) -> None:
         print("    Tailscale 미연결 — setup-tailscale.bat 참고")
     public_url = remote_public_url(cfg)
     if public_url:
-        print(f"  외출 — Cloudflare Tunnel: {public_url}")
+        print(f"  외출 - Cloudflare Tunnel: {public_url}")
     print("  폰에서 최신 내용: 운영자 저장 후 [새로고침] 버튼")
     print("  Wi-Fi 접속 안 되면 allow-phone.bat (관리자 1회)")
     print("  외출 설정: REMOTE-ACCESS.md · setup-tailscale.bat")

@@ -10,9 +10,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="VisionforLife">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="app.css?v=2">
+  <link rel="stylesheet" href="app.css?v=11">
+  <script>
+    (function () {
+      var path = location.pathname || "";
+      if (/\/visionforlife$/i.test(path)) {
+        location.replace(path + "/" + location.search + location.hash);
+      }
+    })();
+  </script>
   <style>
     [hidden] { display: none !important; }
     .admin-overlay:not([hidden]) {
@@ -30,7 +39,7 @@
     <h1 class="app-title">VisionforLife</h1>
     <div class="header-actions">
       <button type="button" id="btn-refresh" class="btn btn-ghost" title="최신 내용 받기">새로고침</button>
-      <button type="button" id="btn-reset" class="btn btn-ghost" title="과정 목록">과정 목록</button>
+      <button type="button" id="btn-reset" class="btn btn-ghost" title="목록">목록</button>
       <button type="button" id="btn-account" class="btn btn-ghost" title="로그인·가입" hidden>로그인</button>
       <button type="button" id="btn-admin" class="btn btn-ghost" title="운영자 모드">운영</button>
     </div>
@@ -39,9 +48,34 @@
   <main class="app-main" id="app-main">
     <section id="catalog-panel" class="catalog-panel">
       <p class="catalog-eyebrow">여정형 마이크로-LMS</p>
-      <h2 class="catalog-title">학습 과정</h2>
-      <p class="catalog-lead">목표와 진도에 맞춰 단계별로 이어가세요. 로그인하면 진도가 저장됩니다.</p>
-      <div id="catalog-list" class="catalog-list"></div>
+      <button type="button" id="btn-back-to-catalogs" class="focus-back catalog-back" hidden>← 카탈로그 목록</button>
+      <h2 id="catalog-title" class="catalog-title">카탈로그</h2>
+      <p id="catalog-lead" class="catalog-lead">학습 카탈로그를 선택하세요. 카탈로그 안에 과정이 있습니다.</p>
+      <section id="catalog-resume" class="catalog-resume" hidden>
+        <button type="button" id="btn-catalog-resume" class="catalog-resume-btn"></button>
+      </section>
+      <section id="catalog-goals" class="catalog-goals" hidden>
+        <label class="catalog-goals-label">내 학습 목표
+          <textarea id="goals-input" class="admin-input catalog-goals-input" rows="2" placeholder="예: 매주 하나님·예수님 과정을 차근차근 완주하기"></textarea>
+        </label>
+        <button type="button" id="btn-save-goals" class="btn btn-sm btn-primary">목표 저장</button>
+      </section>
+      <div id="catalog-admin-bar" class="catalog-admin-bar" hidden>
+        <span class="admin-badge">운영자</span>
+        <button type="button" id="btn-add-catalog" class="btn btn-sm btn-primary">+ 카탈로그 추가</button>
+        <button type="button" id="btn-add-course" class="btn btn-sm btn-primary" hidden>+ 과정 추가</button>
+        <button type="button" id="btn-admin-users" class="btn btn-sm">회원 목록</button>
+        <button type="button" id="btn-exit-catalog-admin" class="btn btn-sm btn-ghost">나가기</button>
+      </div>
+      <div id="catalog-list" class="catalog-list">
+        <div class="catalog-card-wrap">
+          <button type="button" class="catalog-card" data-catalog-slug="life-study">
+            <span class="catalog-card__title">생명공과</span>
+            <span class="catalog-card__desc">새로 믿은 이들의 가정·집회를 위한 48과 공과</span>
+            <span class="catalog-card__meta"><span>과정 열기 →</span></span>
+          </button>
+        </div>
+      </div>
     </section>
     <div class="focus-app" id="focus-app" hidden>
       <button type="button" id="btn-back" class="focus-back" hidden>← 1단계 목록</button>
@@ -83,6 +117,45 @@
         <button type="button" id="auth-submit" class="btn btn-primary">로그인</button>
       </div>
       <p class="admin-hint"><button type="button" id="auth-toggle-mode" class="btn btn-ghost btn-sm">계정이 없으신가요? 가입</button></p>
+    </div>
+  </div>
+
+  <div id="catalog-form-overlay" class="admin-overlay" hidden>
+    <div class="admin-modal">
+      <h2 id="catalog-form-title">새 카탈로그</h2>
+      <p id="catalog-form-hint" class="admin-hint">slug는 영문·숫자·하이픈만 (예: faith-basics)</p>
+      <label>slug<input type="text" id="catalog-form-slug" class="admin-input" placeholder="faith-basics"></label>
+      <label>제목<input type="text" id="catalog-form-title-input" class="admin-input" placeholder="신앙 기초"></label>
+      <label>설명<textarea id="catalog-form-desc" class="admin-input" rows="3"></textarea></label>
+      <div class="admin-row">
+        <button type="button" id="catalog-form-cancel" class="btn btn-ghost">취소</button>
+        <button type="button" id="catalog-form-submit" class="btn btn-primary">만들기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="course-add-overlay" class="admin-overlay" hidden>
+    <div class="admin-modal">
+      <h2 id="course-form-title">새 과정 추가</h2>
+      <p id="course-form-hint" class="admin-hint">이 카탈로그에 들어갈 과정입니다. slug는 영문·숫자·하이픈만.</p>
+      <label>slug<input type="text" id="course-add-slug" class="admin-input" placeholder="who-is-jesus"></label>
+      <label>제목<input type="text" id="course-add-title" class="admin-input" placeholder="예수님은 누구신가?"></label>
+      <label>부제<input type="text" id="course-add-subtitle" class="admin-input"></label>
+      <label>설명<textarea id="course-add-desc" class="admin-input" rows="3"></textarea></label>
+      <div class="admin-row">
+        <button type="button" id="course-add-cancel" class="btn btn-ghost">취소</button>
+        <button type="button" id="course-add-submit" class="btn btn-primary">만들기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-users-overlay" class="admin-overlay" hidden>
+    <div class="admin-modal admin-modal-wide">
+      <h2>회원 목록</h2>
+      <div id="admin-users-list" class="admin-users-list"></div>
+      <div class="admin-row">
+        <button type="button" id="admin-users-close" class="btn btn-primary">닫기</button>
+      </div>
     </div>
   </div>
 
@@ -187,8 +260,8 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="markdown.js?v=2"></script>
-  <script src="version.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="markdown.js?v=5"></script>
+  <script src="version.js?v=5"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

@@ -22,12 +22,12 @@
 
 html, body {
   margin: 0;
-  height: 100%;
+  min-height: 100%;
   font-family: var(--font);
   font-size: calc(16px * var(--fs));
   color: var(--text);
   background: radial-gradient(ellipse 120% 80% at 50% 15%, #152a45 0%, var(--bg) 55%);
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 body.is-resizing-admin {
@@ -75,8 +75,7 @@ body.is-resizing-admin::after {
 }
 
 .app-main {
-  height: calc(100% - 48px);
-  overflow: hidden;
+  min-height: calc(100vh - 48px);
   display: flex;
   justify-content: center;
 }
@@ -90,9 +89,6 @@ body.is-resizing-admin::after {
 .focus-app {
   width: 100%;
   max-width: 520px;
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   padding: 0.5rem 1rem 5.5rem;
 }
 
@@ -1243,6 +1239,51 @@ body.has-admin-toolbar .app-version-foot {
   gap: 0.85rem;
 }
 
+.catalog-card-wrap {
+  position: relative;
+}
+
+.catalog-card-wrap.is-admin .catalog-card {
+  padding-right: 4.5rem;
+}
+
+.catalog-card__draft {
+  display: inline-block;
+  margin-left: 0.45rem;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 4px;
+  color: rgba(255, 200, 120, 0.95);
+  border: 1px solid rgba(255, 200, 120, 0.35);
+  background: rgba(255, 160, 60, 0.12);
+  vertical-align: middle;
+}
+
+.catalog-card-edit {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.75rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 184, 218, 0.35);
+  background: rgba(20, 56, 88, 0.85);
+  color: rgba(220, 236, 248, 0.95);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.catalog-card-edit:hover {
+  border-color: rgba(160, 210, 245, 0.55);
+  background: rgba(30, 72, 108, 0.92);
+}
+
+.admin-input.is-readonly,
+.admin-input[readonly] {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 .catalog-card {
   display: block;
   width: 100%;
@@ -1307,6 +1348,94 @@ body.has-admin-toolbar .app-version-foot {
   width: 0%;
 }
 
+.catalog-resume {
+  margin-bottom: 1rem;
+}
+
+.catalog-resume-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(94, 184, 232, 0.45);
+  background: rgba(20, 56, 88, 0.75);
+  color: #d8efff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.catalog-resume-btn:hover {
+  border-color: rgba(142, 212, 255, 0.65);
+  transform: translateY(-1px);
+}
+
+.catalog-goals {
+  margin-bottom: 1.1rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid rgba(126, 184, 218, 0.2);
+  background: rgba(8, 24, 44, 0.55);
+}
+
+.catalog-goals-label {
+  display: block;
+  font-size: 0.86rem;
+  margin-bottom: 0.45rem;
+  color: rgba(174, 208, 232, 0.9);
+}
+
+.catalog-goals-input {
+  width: 100%;
+  margin-bottom: 0.55rem;
+  resize: vertical;
+  min-height: 2.6rem;
+}
+
+.catalog-admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 184, 218, 0.25);
+  background: rgba(12, 32, 56, 0.65);
+}
+
+.admin-modal-wide {
+  max-width: 36rem;
+  width: min(96vw, 36rem);
+}
+
+.admin-users-list {
+  max-height: 50vh;
+  overflow: auto;
+  margin: 0.75rem 0 1rem;
+}
+
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid rgba(126, 184, 218, 0.15);
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-users-table th {
+  color: rgba(174, 208, 232, 0.85);
+  font-weight: 600;
+}
+
 .course-progress {
   display: flex;
   align-items: center;
@@ -1340,4 +1469,67 @@ body.has-admin-toolbar .app-version-foot {
 .focus-complete-btn.is-done {
   border-color: rgba(120, 210, 160, 0.55);
   color: #9de8bf;
+}
+
+.pwa-install-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 10001;
+  background: rgba(12, 32, 56, 0.96);
+  color: var(--text);
+  border: 1px solid rgba(232, 197, 71, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.65;
+  backdrop-filter: blur(8px);
+}
+
+.pwa-install-bar__title {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.pwa-install-bar__close {
+  float: right;
+  margin: -4px -6px 0 12px;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pwa-install-bar__btn-wrap {
+  display: none;
+  margin-top: 10px;
+}
+
+.pwa-install-bar__btn-wrap.is-visible {
+  display: block;
+}
+
+.pwa-install-bar__install {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #0a1628;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.pwa-install-bar__msg {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(220, 236, 248, 0.9);
 }

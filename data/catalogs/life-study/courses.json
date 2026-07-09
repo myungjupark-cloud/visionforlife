@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "catalogSlug": "life-study",
+  "courses": [
+    {
+      "slug": "shengming-gonggwa",
+      "title": "생명공과",
+      "subtitle": "Witness Lee · 개정 2판",
+      "description": "제1과부터 순서대로 공부하세요.",
+      "order": 1
+    }
+  ]
+}

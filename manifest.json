@@ -3,14 +3,34 @@
   "name": "VisionforLife",
   "short_name": "VisionforLife",
   "description": "여정형 마이크로-LMS — 목표와 진도에 맞춘 단계별 학습",
-  "start_url": "./",
+  "start_url": "./index.html?source=pwa",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0a1628",
   "theme_color": "#0a1628",
   "orientation": "any",
   "lang": "ko",
+  "categories": ["education", "books"],
   "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "icon.svg",
       "sizes": "any",
