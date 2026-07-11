@@ -6,6 +6,7 @@
       "title": "천지창조",
       "description": "창조의 목적과 과정을 이해하면 하나님과 인류에 대해 많은 것을 알 수 있습니다.",
       "order": 1,
+      "visibility": "private",
       "published": false
     },
     {
@@ -13,13 +14,23 @@
       "title": "사람의 존재에 대한 이해",
       "description": "영과 혼과 몸으로 이루어진 사람의 존제에 대한 이해",
       "order": 2,
+      "visibility": "private",
       "published": false
+    },
+    {
+      "slug": "mystery",
+      "title": "인생의 비밀",
+      "description": "우주와 사람의 감추어진 비밀 — 사람은 하나님을 담는 그릇입니다.",
+      "order": 3,
+      "visibility": "public",
+      "published": true
     },
     {
       "slug": "life-study",
       "title": "생명공과",
       "description": "새로 믿은 이들의 가정·집회를 위한 48과 공과",
-      "order": 3,
+      "order": 4,
+      "visibility": "members",
       "published": true
     }
   ]

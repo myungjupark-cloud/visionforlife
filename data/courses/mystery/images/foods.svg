@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="560" height="220">
+  <rect width="560" height="220" fill="#f6f1e6"/>
+  <defs>
+    <style>
+      .card { fill:#fbf8f1; stroke:#e1d6bf; stroke-width:1.5; }
+      .fn { font-family: Nanum Myeongjo, Noto Serif KR, serif; font-size:16px; fill:#13314f; font-weight:700; }
+      .fr { font-family: Noto Sans KR, sans-serif; font-size:12px; fill:#7d7363; }
+    </style>
+  </defs>
+
+<rect class="card" x="20" y="20" width="160" height="80" rx="10"/>
+<text class="fn" x="100" y="54" text-anchor="middle">생명나무</text>
+<text class="fr" x="100" y="76" text-anchor="middle">창세기 2:9</text>
+<rect class="card" x="200" y="20" width="160" height="80" rx="10"/>
+<text class="fn" x="280" y="54" text-anchor="middle">유월절 어린양</text>
+<text class="fr" x="280" y="76" text-anchor="middle">출애굽기 12:5~8</text>
+<rect class="card" x="380" y="20" width="160" height="80" rx="10"/>
+<text class="fn" x="460" y="54" text-anchor="middle">만나와 생수</text>
+<text class="fr" x="460" y="76" text-anchor="middle">출애굽기 16:13~15</text>
+<rect class="card" x="110" y="120" width="160" height="80" rx="10"/>
+<text class="fn" x="190" y="154" text-anchor="middle">좋은 땅의 소산물</text>
+<text class="fr" x="190" y="176" text-anchor="middle">신명기 8:7~10</text>
+<rect class="card" x="290" y="120" width="160" height="80" rx="10"/>
+<text class="fn" x="370" y="154" text-anchor="middle">살아 있는 떡</text>
+<text class="fr" x="370" y="176" text-anchor="middle">요한복음 6:51</text>
+</svg>

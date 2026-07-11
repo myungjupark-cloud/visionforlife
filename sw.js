@@ -1,4 +1,4 @@
-var CACHE = "visionforlife-v10";
+var CACHE = "visionforlife-v85";
 
 function scopeUrl(rel) {
   return new URL(rel, self.registration.scope || self.location).href;

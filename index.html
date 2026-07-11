@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a1628">
   <meta name="description" content="VisionforLife — 목표와 진도에 맞춘 여정형 마이크로-LMS">
-  <title>VisionforLife</title>
-  <link rel="manifest" href="manifest.json">
+  <title>생명공과</title>
+  <link rel="manifest" href="manifest.json?v=6">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="VisionforLife">
+  <meta name="apple-mobile-web-app-title" content="생명공과">
+  <meta name="application-name" content="생명공과">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="app.css?v=11">
+  <link rel="stylesheet" href="app.css?v=21">
   <script>
     (function () {
       var path = location.pathname || "";
@@ -40,8 +41,9 @@
     <div class="header-actions">
       <button type="button" id="btn-refresh" class="btn btn-ghost" title="최신 내용 받기">새로고침</button>
       <button type="button" id="btn-reset" class="btn btn-ghost" title="목록">목록</button>
-      <button type="button" id="btn-account" class="btn btn-ghost" title="로그인·가입" hidden>로그인</button>
-      <button type="button" id="btn-admin" class="btn btn-ghost" title="운영자 모드">운영</button>
+      <button type="button" id="btn-account" class="btn btn-ghost" title="로그인·등록" hidden>로그인</button>
+      <button type="button" id="btn-member-admin" class="btn btn-ghost" title="회원 관리" hidden>회원관리</button>
+      <button type="button" id="btn-admin" class="btn btn-ghost" title="메인 운영자 모드">운영</button>
     </div>
   </header>
 
@@ -51,30 +53,32 @@
       <button type="button" id="btn-back-to-catalogs" class="focus-back catalog-back" hidden>← 카탈로그 목록</button>
       <h2 id="catalog-title" class="catalog-title">카탈로그</h2>
       <p id="catalog-lead" class="catalog-lead">학습 카탈로그를 선택하세요. 카탈로그 안에 과정이 있습니다.</p>
+      <section id="catalog-auth-cta" class="catalog-auth-cta" hidden>
+        <p class="catalog-auth-cta__text">학습 진도를 저장하려면 회원 등록이 필요합니다. 등록 후 운영자 승인을 받아 주세요.</p>
+        <div class="catalog-auth-cta__actions">
+          <button type="button" id="btn-catalog-login" class="btn btn-sm">로그인</button>
+          <button type="button" id="btn-catalog-register" class="btn btn-sm btn-primary">회원 등록</button>
+        </div>
+      </section>
       <section id="catalog-resume" class="catalog-resume" hidden>
         <button type="button" id="btn-catalog-resume" class="catalog-resume-btn"></button>
       </section>
       <section id="catalog-goals" class="catalog-goals" hidden>
-        <label class="catalog-goals-label">내 학습 목표
-          <textarea id="goals-input" class="admin-input catalog-goals-input" rows="2" placeholder="예: 매주 하나님·예수님 과정을 차근차근 완주하기"></textarea>
+        <label class="catalog-goals-label">내 추구 목표
+          <textarea id="goals-input" class="admin-input catalog-goals-input" rows="2" placeholder="예: 생명의 성장을 위하여 차근차근 완주하기"></textarea>
         </label>
         <button type="button" id="btn-save-goals" class="btn btn-sm btn-primary">목표 저장</button>
       </section>
       <div id="catalog-admin-bar" class="catalog-admin-bar" hidden>
-        <span class="admin-badge">운영자</span>
+        <span class="admin-badge">메인 운영자</span>
         <button type="button" id="btn-add-catalog" class="btn btn-sm btn-primary">+ 카탈로그 추가</button>
         <button type="button" id="btn-add-course" class="btn btn-sm btn-primary" hidden>+ 과정 추가</button>
-        <button type="button" id="btn-admin-users" class="btn btn-sm">회원 목록</button>
+        <button type="button" id="btn-admin-users" class="btn btn-sm">회원 관리</button>
+        <button type="button" id="btn-catalog-deploy" class="btn btn-sm">배포</button>
         <button type="button" id="btn-exit-catalog-admin" class="btn btn-sm btn-ghost">나가기</button>
       </div>
       <div id="catalog-list" class="catalog-list">
-        <div class="catalog-card-wrap">
-          <button type="button" class="catalog-card" data-catalog-slug="life-study">
-            <span class="catalog-card__title">생명공과</span>
-            <span class="catalog-card__desc">새로 믿은 이들의 가정·집회를 위한 48과 공과</span>
-            <span class="catalog-card__meta"><span>과정 열기 →</span></span>
-          </button>
-        </div>
+        <p class="catalog-lead">불러오는 중…</p>
       </div>
     </section>
     <div class="focus-app" id="focus-app" hidden>
@@ -108,15 +112,15 @@
   <div id="auth-overlay" class="admin-overlay" hidden>
     <div class="admin-modal">
       <h2 id="auth-modal-title">로그인</h2>
-      <p class="admin-hint">VisionforLife 학습 진도를 저장하려면 가입하세요.</p>
-      <label>이메일<input type="email" id="auth-email" class="admin-input" autocomplete="username"></label>
+      <p id="auth-modal-hint" class="admin-hint">VisionforLife 학습 진도를 저장하려면 회원 등록하세요. 등록 후 운영자 승인이 필요합니다.</p>
+      <label>휴대폰 <span class="admin-hint-inline">번호만 입력하세요.</span><input type="tel" id="auth-phone" class="admin-input" inputmode="numeric" autocomplete="tel" placeholder="010-0000-0000" maxlength="13"></label>
       <label>비밀번호<input type="password" id="auth-password" class="admin-input" autocomplete="current-password"></label>
       <label id="auth-name-row" hidden>이름<input type="text" id="auth-name" class="admin-input" autocomplete="name"></label>
       <div class="admin-row">
         <button type="button" id="auth-cancel" class="btn btn-ghost">취소</button>
         <button type="button" id="auth-submit" class="btn btn-primary">로그인</button>
       </div>
-      <p class="admin-hint"><button type="button" id="auth-toggle-mode" class="btn btn-ghost btn-sm">계정이 없으신가요? 가입</button></p>
+      <p class="admin-hint"><button type="button" id="auth-toggle-mode" class="btn btn-ghost btn-sm">계정이 없으신가요? 등록</button></p>
     </div>
   </div>
 
@@ -127,6 +131,12 @@
       <label>slug<input type="text" id="catalog-form-slug" class="admin-input" placeholder="faith-basics"></label>
       <label>제목<input type="text" id="catalog-form-title-input" class="admin-input" placeholder="신앙 기초"></label>
       <label>설명<textarea id="catalog-form-desc" class="admin-input" rows="3"></textarea></label>
+      <fieldset class="admin-visibility">
+        <legend>공개 범위</legend>
+        <label class="admin-check"><input type="radio" name="catalog-visibility" value="public"> 공개용 <span class="admin-hint-inline">비회원도 전체 열람</span></label>
+        <label class="admin-check"><input type="radio" name="catalog-visibility" value="members" checked> 회원용 <span class="admin-hint-inline">목록·소개 공개, 본과부터 회원</span></label>
+        <label class="admin-check"><input type="radio" name="catalog-visibility" value="private"> 비공개 <span class="admin-hint-inline">운영자만</span></label>
+      </fieldset>
       <div class="admin-row">
         <button type="button" id="catalog-form-cancel" class="btn btn-ghost">취소</button>
         <button type="button" id="catalog-form-submit" class="btn btn-primary">만들기</button>
@@ -151,7 +161,8 @@
 
   <div id="admin-users-overlay" class="admin-overlay" hidden>
     <div class="admin-modal admin-modal-wide">
-      <h2>회원 목록</h2>
+      <h2>회원 관리</h2>
+      <p class="admin-hint">승인·강퇴·진도 확인·안내 멘트를 관리합니다.</p>
       <div id="admin-users-list" class="admin-users-list"></div>
       <div class="admin-row">
         <button type="button" id="admin-users-close" class="btn btn-primary">닫기</button>
@@ -159,9 +170,19 @@
     </div>
   </div>
 
+  <div id="operator-notice-overlay" class="admin-overlay" hidden>
+    <div class="admin-modal">
+      <h2>운영자 안내</h2>
+      <p id="operator-notice-body" class="operator-notice-body"></p>
+      <div class="admin-row">
+        <button type="button" id="operator-notice-ok" class="btn btn-primary">확인</button>
+      </div>
+    </div>
+  </div>
+
   <div id="admin-overlay" class="admin-overlay" hidden>
     <div class="admin-modal">
-      <h2>운영자 모드</h2>
+      <h2>메인 운영자</h2>
       <p id="admin-hint" class="admin-hint">PIN을 입력하세요</p>
       <input type="password" id="admin-pin" class="admin-input" inputmode="numeric" autocomplete="off" placeholder="PIN">
       <div class="admin-row">
@@ -172,13 +193,14 @@
   </div>
 
   <div id="admin-toolbar" class="admin-toolbar" hidden>
-    <span class="admin-badge">운영자</span>
+    <span class="admin-badge">메인 운영자</span>
     <button type="button" id="btn-add-child" class="btn btn-sm">자식 추가</button>
     <button type="button" id="btn-delete-node" class="btn btn-sm btn-danger">삭제</button>
     <button type="button" id="btn-export" class="btn btn-sm">보내기</button>
     <button type="button" id="btn-import" class="btn btn-sm">가져오기</button>
     <input type="file" id="import-file" accept=".json,application/json" hidden>
     <button type="button" id="btn-save" class="btn btn-sm btn-primary">저장</button>
+    <button type="button" id="btn-deploy" class="btn btn-sm">배포</button>
     <button type="button" id="btn-exit-admin" class="btn btn-sm btn-ghost">나가기</button>
   </div>
 
@@ -186,7 +208,20 @@
     <div class="admin-editor-body">
     <h3>노드 편집 <span class="admin-editor-resize-hint">· 스크롤바 오른쪽 막대를 드래그 (더블클릭: 기본 폭)</span></h3>
     <label>제목<input type="text" id="edit-title" class="admin-input"></label>
-    <label>설명<textarea id="edit-desc" class="admin-input admin-input-desc" rows="10"></textarea></label>
+    <div class="admin-desc-block">
+      <div class="admin-desc-toolbar">
+        <span class="admin-desc-label">설명</span>
+        <div class="admin-desc-toolbar-actions">
+          <button type="button" id="btn-insert-aside" class="btn btn-sm">부가설명</button>
+          <button type="button" id="btn-insert-hymn" class="btn btn-sm">찬송 추가</button>
+          <button type="button" id="btn-insert-link" class="btn btn-sm">링크 추가</button>
+          <button type="button" id="btn-insert-image" class="btn btn-sm">그림 추가</button>
+        </div>
+      </div>
+      <textarea id="edit-desc" class="admin-input admin-input-desc" rows="10"></textarea>
+      <div id="aside-list" class="admin-aside-list" hidden></div>
+    </div>
+    <audio id="hymn-audio" preload="none" hidden></audio>
     <div id="reorder-row" class="admin-move" hidden>
       <p class="admin-section-title">목록 순서</p>
       <p class="admin-hint">▲/▼로 같은 단계 형제 순서 또는 이어지는 단계(한 줄 체인) 안에서 위·아래로 바꿉니다. 저장을 눌러 반영하세요.</p>
@@ -249,6 +284,75 @@
     <button type="button" id="app-ver-btn" class="app-ver-btn">Ver. · 업데이트 내역</button>
   </footer>
 
+  <div id="aside-form-overlay" class="admin-overlay aside-form-overlay" hidden>
+    <div class="admin-modal aside-form-modal" id="aside-form-modal">
+      <h2 id="aside-form-title" class="aside-form-drag-handle" title="드래그하여 이동">부가설명 추가</h2>
+      <p class="admin-hint">설명 커서 위치에 링크가 들어갑니다. 학습자가 누르면 오버레이로 본문을 읽습니다.</p>
+      <label>링크 문구<input type="text" id="aside-form-label" class="admin-input" placeholder="관유 자세히 알기" value="자세히 알기"></label>
+      <label>본문 (마크다운)<textarea id="aside-form-body" class="admin-input" rows="10" placeholder="## 관유란?&#10;&#10;부가 설명을 입력하세요."></textarea></label>
+      <div class="admin-row">
+        <button type="button" id="aside-form-cancel" class="btn btn-ghost">취소</button>
+        <button type="button" id="aside-form-submit" class="btn btn-primary">넣기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="link-form-overlay" class="admin-overlay aside-form-overlay" hidden>
+    <div class="admin-modal aside-form-modal" id="link-form-modal" role="dialog" aria-modal="true" aria-labelledby="link-form-title">
+      <h2 id="link-form-title">링크 추가</h2>
+      <p class="admin-hint">브라우저에서 주소를 복사한 뒤 여기로 돌아와 붙여넣으세요. 이 창은 닫히지 않습니다.</p>
+      <label>웹페이지 주소
+        <input type="url" id="link-form-url" class="admin-input" placeholder="https://example.com/" inputmode="url" autocomplete="url">
+      </label>
+      <label>링크에 보일 문구
+        <input type="text" id="link-form-label" class="admin-input" placeholder="홈페이지 열기" value="홈페이지 열기">
+      </label>
+      <div class="admin-row">
+        <button type="button" id="link-form-cancel" class="btn btn-ghost">취소</button>
+        <button type="button" id="link-form-submit" class="btn btn-primary">넣기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="image-form-overlay" class="admin-overlay aside-form-overlay" hidden>
+    <div class="admin-modal aside-form-modal" id="image-form-modal" role="dialog" aria-modal="true" aria-labelledby="image-form-title">
+      <h2 id="image-form-title">그림 추가</h2>
+      <p class="admin-hint">jpg · png · gif · webp · svg (최대 4MB). 집 PC 서버(serve.bat)에서만 업로드됩니다.</p>
+      <label>파일
+        <input type="file" id="image-form-file" class="admin-input" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,.png,.jpg,.jpeg,.gif,.webp,.svg">
+      </label>
+      <label>대체 문구 (선택)
+        <input type="text" id="image-form-alt" class="admin-input" placeholder="그림 설명">
+      </label>
+      <div class="admin-row">
+        <button type="button" id="image-form-cancel" class="btn btn-ghost">취소</button>
+        <button type="button" id="image-form-submit" class="btn btn-primary">넣기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="link-open-overlay" class="admin-overlay aside-form-overlay" hidden>
+    <div class="admin-modal aside-form-modal" id="link-open-modal" role="dialog" aria-modal="true" aria-labelledby="link-open-title">
+      <h2 id="link-open-title">외부 링크</h2>
+      <p class="admin-hint">폰 앱에서는 시스템 브라우저로 바로 열 수 없습니다. 공유하거나 주소를 복사해 브라우저에서 열어 주세요. 이 앱은 그대로 유지됩니다.</p>
+      <p id="link-open-url" class="admin-location" style="word-break:break-all"></p>
+      <div class="admin-row" style="flex-wrap:wrap">
+        <button type="button" id="link-open-cancel" class="btn btn-ghost">닫기</button>
+        <button type="button" id="link-open-copy" class="btn btn-sm">주소 복사</button>
+        <button type="button" id="link-open-share" class="btn btn-primary">공유하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="aside-overlay" class="aside-overlay" hidden>
+    <div class="aside-overlay__backdrop" data-aside-close aria-hidden="true"></div>
+    <div class="aside-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="aside-overlay-title">
+      <button type="button" id="aside-overlay-back" class="btn btn-sm aside-overlay__back">← 과목으로</button>
+      <h2 id="aside-overlay-title" class="aside-overlay__title"></h2>
+      <div id="aside-overlay-body" class="aside-overlay__body focus-desc is-rich"></div>
+    </div>
+  </div>
+
   <div id="app-update-modal" class="app-update-modal" hidden>
     <div class="app-update-modal__backdrop" data-close aria-hidden="true"></div>
     <div class="app-update-modal__panel" role="dialog" aria-modal="true" aria-label="업데이트 내역">
@@ -260,8 +364,8 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="markdown.js?v=5"></script>
-  <script src="version.js?v=5"></script>
-  <script src="app.js?v=22"></script>
+  <script src="markdown.js?v=10"></script>
+  <script src="version.js?v=6"></script>
+  <script src="app.js?v=106"></script>
 </body>
 </html>

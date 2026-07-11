@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "catalogSlug": "mystery",
+  "courses": [
+    {
+      "slug": "mystery",
+      "title": "인생의 비밀",
+      "subtitle": "생명공과에 앞서 구원에 대한 분명한 이해가 필요한 분들을 위해",
+      "description": "우주와 사람의 감추어진 비밀 — 사람은 하나님을 담는 그릇입니다. 1단계부터 순서대로 추구하세요.",
+      "order": 1
+    }
+  ]
+}

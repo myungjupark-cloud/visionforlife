@@ -373,8 +373,15 @@ body.is-resizing-admin::after {
 
 .focus-desc.is-rich .desc-hr {
   border: none;
-  border-top: 1px dashed rgba(126, 184, 218, 0.28);
-  margin: 1rem 0;
+  border-top: 1px solid rgba(232, 197, 71, 0.35);
+  margin: 1.15rem 0 1rem;
+}
+
+.focus-desc.is-rich .desc-blank {
+  display: block;
+  width: 100%;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .focus-desc.is-rich .desc-table-wrap {
@@ -413,6 +420,233 @@ body.is-resizing-admin::after {
 .focus-desc.is-rich strong {
   color: #f0dfa0;
   font-weight: 600;
+}
+
+.focus-desc.is-rich .desc-hymn {
+  margin: 0.85rem 0 1rem;
+}
+
+.focus-desc.is-rich .desc-hymn-title {
+  color: #e8c547;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  margin-bottom: 0.45rem;
+}
+
+.focus-desc.is-rich .desc-hymn-player {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.15rem 0.15rem;
+}
+
+.focus-desc.is-rich .desc-hymn-play {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(232, 197, 71, 0.75);
+  background: rgba(10, 22, 40, 0.55);
+  color: #e8c547;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.focus-desc.is-rich .desc-hymn.is-playing .desc-hymn-play {
+  background: rgba(232, 197, 71, 0.18);
+}
+
+.focus-desc.is-rich .desc-hymn-seek {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 0.35rem;
+  accent-color: #e8c547;
+  cursor: pointer;
+}
+
+.focus-desc.is-rich .desc-hymn-time {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-desc-block {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.admin-desc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-desc-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.admin-aside-list {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(126, 184, 218, 0.15);
+}
+
+.admin-aside-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-aside-item-label {
+  font-size: 0.82rem;
+  color: var(--text);
+  word-break: keep-all;
+}
+
+.admin-aside-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.focus-desc.is-rich .desc-figure {
+  margin: 0.35em 0 1em;
+  text-align: center;
+}
+
+.focus-desc.is-rich .desc-img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+.aside-overlay__body .desc-figure {
+  margin: 0.35em 0 1em;
+  text-align: center;
+}
+
+.aside-overlay__body .desc-img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+.focus-desc.is-rich .desc-aside-link,
+.aside-overlay__body .desc-aside-link,
+.focus-desc.is-rich .desc-ext-link,
+.aside-overlay__body .desc-ext-link {
+  display: inline;
+  margin: 0 0.15rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #e8c547;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.focus-desc.is-rich .desc-aside-link:hover,
+.aside-overlay__body .desc-aside-link:hover,
+.focus-desc.is-rich .desc-ext-link:hover,
+.aside-overlay__body .desc-ext-link:hover {
+  color: #f3d978;
+}
+
+.focus-desc.is-rich .desc-ext-link::after,
+.aside-overlay__body .desc-ext-link::after {
+  content: " ↗";
+  font-size: 0.85em;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.aside-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.aside-overlay[hidden] {
+  display: none !important;
+}
+
+.aside-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 10, 20, 0.72);
+}
+
+.aside-overlay__panel {
+  position: relative;
+  z-index: 1;
+  width: min(40rem, 100%);
+  max-height: 100%;
+  overflow: auto;
+  margin: 0 auto;
+  padding: 1.1rem 1.15rem 2rem;
+  background: linear-gradient(180deg, #12233a 0%, #0a1628 100%);
+  color: var(--text);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.35);
+}
+
+.aside-overlay__back {
+  margin-bottom: 0.85rem;
+}
+
+.aside-overlay__title {
+  margin: 0 0 0.85rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #e8c547;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.aside-overlay__body {
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+body.aside-open {
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+
+.admin-desc-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.admin-desc-block .admin-input-desc {
+  width: 100%;
 }
 
 .desc-rich-reveal {
@@ -716,11 +950,76 @@ body.is-resizing-admin::after {
   width: min(320px, 90vw);
 }
 
+/* Aside editor only — wider, draggable, no accidental backdrop dismiss */
+#aside-form-overlay.aside-form-overlay {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+#aside-form-overlay .aside-form-modal {
+  width: min(480px, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+#aside-form-overlay .aside-form-drag-handle {
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  padding-right: 1.5rem;
+}
+
+#aside-form-overlay .aside-form-drag-handle::after {
+  content: "⋮⋮";
+  float: right;
+  opacity: 0.45;
+  font-size: 0.85rem;
+  letter-spacing: -0.15em;
+}
+
 .admin-modal h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
 
 .admin-hint {
   margin: 0 0 0.75rem;
   font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.admin-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.85rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.admin-check input {
+  width: auto;
+  margin: 0;
+}
+
+.admin-visibility {
+  margin: 0.35rem 0 0.85rem;
+  padding: 0.55rem 0.75rem 0.15rem;
+  border: 1px solid rgba(126, 184, 218, 0.28);
+  border-radius: 10px;
+}
+
+.admin-visibility legend {
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.admin-visibility .admin-check {
+  margin: 0.25rem 0 0.55rem;
+}
+
+.admin-hint-inline {
+  font-size: 0.78rem;
+  font-weight: 400;
   color: var(--text-muted);
 }
 
@@ -1260,6 +1559,18 @@ body.has-admin-toolbar .app-version-foot {
   vertical-align: middle;
 }
 
+.catalog-card__draft.is-members {
+  color: rgba(160, 210, 255, 0.95);
+  border-color: rgba(120, 180, 230, 0.4);
+  background: rgba(80, 140, 200, 0.14);
+}
+
+.catalog-card__draft.is-public {
+  color: rgba(160, 230, 180, 0.95);
+  border-color: rgba(100, 190, 130, 0.4);
+  background: rgba(70, 160, 100, 0.14);
+}
+
 .catalog-card-edit {
   position: absolute;
   top: 0.85rem;
@@ -1352,6 +1663,27 @@ body.has-admin-toolbar .app-version-foot {
   margin-bottom: 1rem;
 }
 
+.catalog-auth-cta {
+  margin: 0 0 1.1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(126, 184, 218, 0.28);
+  background: rgba(12, 36, 58, 0.55);
+}
+
+.catalog-auth-cta__text {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(210, 230, 245, 0.92);
+}
+
+.catalog-auth-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .catalog-resume-btn {
   display: block;
   width: 100%;
@@ -1406,11 +1738,6 @@ body.has-admin-toolbar .app-version-foot {
   background: rgba(12, 32, 56, 0.65);
 }
 
-.admin-modal-wide {
-  max-width: 36rem;
-  width: min(96vw, 36rem);
-}
-
 .admin-users-list {
   max-height: 50vh;
   overflow: auto;
@@ -1434,6 +1761,31 @@ body.has-admin-toolbar .app-version-foot {
 .admin-users-table th {
   color: rgba(174, 208, 232, 0.85);
   font-weight: 600;
+}
+
+.admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 9rem;
+}
+
+.admin-user-goals {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: rgba(174, 208, 232, 0.7);
+}
+
+.operator-notice-body {
+  white-space: pre-wrap;
+  line-height: 1.55;
+  margin: 0.75rem 0 1rem;
+  color: rgba(230, 240, 250, 0.95);
+}
+
+.admin-modal-wide {
+  max-width: 52rem;
+  width: min(96vw, 52rem);
 }
 
 .course-progress {

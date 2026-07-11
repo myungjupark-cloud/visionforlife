@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420" width="560" height="420">
+  <rect width="560" height="420" fill="#f6f1e6"/>
+
+<circle cx="36" cy="40" r="16" fill="#13314f"/>
+<text x="36" y="46" text-anchor="middle" font-family="Noto Sans KR,sans-serif" font-size="14" fill="#f6f1e6">1</text>
+<text x="68" y="36" font-family="Nanum Myeongjo, Noto Serif KR, serif" font-size="18" fill="#13314f">사람이 되심</text>
+<text x="68" y="58" font-family="Noto Sans KR,sans-serif" font-size="13" fill="#7d7363">하나님이 사람으로 오셔서 인간 생활을 사심</text>
+<circle cx="36" cy="106" r="16" fill="#a23a2e"/>
+<text x="36" y="112" text-anchor="middle" font-family="Noto Sans KR,sans-serif" font-size="14" fill="#f6f1e6">✝</text>
+<text x="68" y="102" font-family="Nanum Myeongjo, Noto Serif KR, serif" font-size="18" fill="#13314f">십자가에 못 박히심</text>
+<text x="68" y="124" font-family="Noto Sans KR,sans-serif" font-size="13" fill="#7d7363">우리의 죄를 짊어지심</text>
+<circle cx="36" cy="172" r="16" fill="#13314f"/>
+<text x="36" y="178" text-anchor="middle" font-family="Noto Sans KR,sans-serif" font-size="14" fill="#f6f1e6">3</text>
+<text x="68" y="168" font-family="Nanum Myeongjo, Noto Serif KR, serif" font-size="18" fill="#13314f">장사되심</text>
+<circle cx="36" cy="238" r="16" fill="#13314f"/>
+<text x="36" y="244" text-anchor="middle" font-family="Noto Sans KR,sans-serif" font-size="14" fill="#f6f1e6">4</text>
+<text x="68" y="234" font-family="Nanum Myeongjo, Noto Serif KR, serif" font-size="18" fill="#13314f">사흘 만에 부활하심</text>
+<text x="68" y="256" font-family="Noto Sans KR,sans-serif" font-size="13" fill="#7d7363">죽음을 이기심</text>
+<circle cx="36" cy="304" r="16" fill="#13314f"/>
+<text x="36" y="310" text-anchor="middle" font-family="Noto Sans KR,sans-serif" font-size="14" fill="#f6f1e6">5</text>
+<text x="68" y="300" font-family="Nanum Myeongjo, Noto Serif KR, serif" font-size="18" fill="#13314f">생명 주시는 영이 되심</text>
+<text x="68" y="322" font-family="Noto Sans KR,sans-serif" font-size="13" fill="#7d7363">우리 안으로 들어오실 수 있게 되심</text>
+<circle cx="36" cy="370" r="16" fill="#13314f"/>
+<text x="36" y="376" text-anchor="middle" font-family="Noto Sans KR,sans-serif" font-size="14" fill="#f6f1e6">6</text>
+<text x="68" y="366" font-family="Nanum Myeongjo, Noto Serif KR, serif" font-size="18" fill="#13314f">하늘로 오르심</text>
+</svg>

@@ -16,6 +16,27 @@ COURSES_DIR = os.path.join(DATA_DIR, "courses")
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
+VISIBILITY_PUBLIC = "public"
+VISIBILITY_MEMBERS = "members"
+VISIBILITY_PRIVATE = "private"
+VISIBILITY_VALUES = (VISIBILITY_PUBLIC, VISIBILITY_MEMBERS, VISIBILITY_PRIVATE)
+
+
+def normalize_visibility(value=None, published=None) -> str:
+    """공개(public) / 회원(members) / 비공개(private). legacy published 호환."""
+    v = str(value or "").strip().lower()
+    if v in VISIBILITY_VALUES:
+        return v
+    if published is False:
+        return VISIBILITY_PRIVATE
+    if published is True:
+        return VISIBILITY_PUBLIC
+    return VISIBILITY_PRIVATE
+
+
+def visibility_to_published(visibility: str) -> bool:
+    return normalize_visibility(visibility) != VISIBILITY_PRIVATE
+
 
 def load_catalogs_index() -> dict:
     if not os.path.isfile(CATALOGS_INDEX_PATH):
@@ -68,12 +89,23 @@ def catalog_slug_available(slug: str) -> bool:
     return not os.path.isdir(os.path.join(CATALOGS_DIR, slug))
 
 
-def create_catalog(slug: str, title: str, description: str = "") -> dict:
+def create_catalog(
+    slug: str,
+    title: str,
+    description: str = "",
+    published: bool | None = None,
+    visibility: str | None = None,
+) -> dict:
     slug = (slug or "").strip()
     title = (title or "").strip() or slug
     if not catalog_slug_available(slug):
         raise ValueError("catalog slug unavailable or invalid")
 
+    # 새 카탈로그 기본: 비공개 (실수 공개 방지). visibility 우선, 없으면 published, 둘 다 없으면 private.
+    if visibility is None and published is None:
+        vis = VISIBILITY_PRIVATE
+    else:
+        vis = normalize_visibility(visibility, published)
     index = load_catalogs_index()
     catalogs = list(index.get("catalogs") or [])
     order = max([int(c.get("order") or 0) for c in catalogs] + [0]) + 1
@@ -82,7 +114,8 @@ def create_catalog(slug: str, title: str, description: str = "") -> dict:
         "title": title,
         "description": (description or "").strip(),
         "order": order,
-        "published": False,
+        "visibility": vis,
+        "published": visibility_to_published(vis),
     }
     catalogs.append(entry)
     index["catalogs"] = catalogs
@@ -91,7 +124,13 @@ def create_catalog(slug: str, title: str, description: str = "") -> dict:
     return entry
 
 
-def update_catalog(slug: str, title: str, description: str = "") -> dict:
+def update_catalog(
+    slug: str,
+    title: str,
+    description: str = "",
+    published: bool | None = None,
+    visibility: str | None = None,
+) -> dict:
     slug = (slug or "").strip()
     title = (title or "").strip()
     if not slug or not title:
@@ -106,6 +145,14 @@ def update_catalog(slug: str, title: str, description: str = "") -> dict:
     entry = dict(catalogs[idx])
     entry["title"] = title
     entry["description"] = (description or "").strip()
+    if visibility is not None:
+        vis = normalize_visibility(visibility, published)
+    elif published is not None:
+        vis = normalize_visibility(entry.get("visibility"), published)
+    else:
+        vis = normalize_visibility(entry.get("visibility"), entry.get("published"))
+    entry["visibility"] = vis
+    entry["published"] = visibility_to_published(vis)
     catalogs[idx] = entry
     index["catalogs"] = catalogs
     save_catalogs_index(index)
@@ -309,6 +356,7 @@ def update_course(
     for node in data.get("nodes") or []:
         if node.get("id") == root_id:
             node["title"] = title
+            node["description"] = (description or "").strip()
             break
 
     save_mindmap(slug, data)
@@ -329,9 +377,11 @@ def sync_catalog_from_mindmap(course_slug: str, data: dict) -> bool:
 
     root_id = data.get("rootId")
     root_title = ""
+    root_desc = ""
     for node in data.get("nodes") or []:
         if node.get("id") == root_id:
             root_title = str(node.get("title") or "").strip()
+            root_desc = str(node.get("description") or "").strip()
             break
 
     meta = data.get("meta") or {}
@@ -344,6 +394,9 @@ def sync_catalog_from_mindmap(course_slug: str, data: dict) -> bool:
         changed = True
     if entry.get("subtitle") != subtitle:
         entry["subtitle"] = subtitle
+        changed = True
+    if root_desc and entry.get("description") != root_desc:
+        entry["description"] = root_desc
         changed = True
 
     if not changed:

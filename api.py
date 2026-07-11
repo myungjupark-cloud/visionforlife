@@ -28,7 +28,7 @@ import urllib.request
 
 from datetime import datetime, timezone
 
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 from urllib.parse import parse_qs, urlparse
 
@@ -37,20 +37,33 @@ from urllib.parse import parse_qs, urlparse
 from rag_search import search_topic, search_topic_fts_only
 
 try:
-    from deploy_thegospel import deploy_mindmap_after_save
+    from deploy_thegospel import deploy_mindmap_after_save, deploy_to_thegospel
 except ImportError:
     def deploy_mindmap_after_save():
         return {"ok": False, "skipped": True, "reason": "deploy module not installed"}
 
+    def deploy_to_thegospel(files=None):
+        return {"ok": False, "skipped": True, "reason": "deploy module not installed"}
+
 from auth_store import (
+    ROLE_LEARNER,
+    ROLE_OPERATOR,
+    STATUS_ACTIVE,
+    STATUS_DISABLED,
     get_all_progress_summary,
     get_course_progress,
+    get_unread_operator_message,
     init_db,
     list_users,
     login_user,
     logout_user,
+    mark_operator_message_read,
     register_user,
+    set_user_role,
+    set_user_status,
     update_user_goals,
+    update_user_name,
+    upsert_operator_message,
     upsert_progress,
     user_from_token,
 )
@@ -149,6 +162,16 @@ def session_token_from_handler(handler: SimpleHTTPRequestHandler) -> str | None:
         part = part.strip()
         if part.startswith(SESSION_COOKIE + "="):
             return part.split("=", 1)[1].strip()
+    hdr = (handler.headers.get("X-VFL-Session") or "").strip()
+    if hdr:
+        return hdr
+    query = parse_qs(urlparse(handler.path).query)
+    q = str((query.get("vfl_token") or [""])[0]).strip()
+    if q:
+        return q
+    auth = (handler.headers.get("Authorization") or "").strip()
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip()
     return None
 
 
@@ -221,7 +244,18 @@ def verify_admin_pin(data: dict, handler: SimpleHTTPRequestHandler | None = None
 
 def _is_localhost(handler: SimpleHTTPRequestHandler) -> bool:
     host = (handler.headers.get("Host") or "").split(":")[0].lower()
-    return host in ("localhost", "127.0.0.1")
+    if host in ("localhost", "127.0.0.1"):
+        return True
+    # Private LAN / Tailscale — local operator PC only
+    if re.fullmatch(r"192\.168\.\d{1,3}\.\d{1,3}", host):
+        return True
+    if re.fullmatch(r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}", host):
+        return True
+    if re.fullmatch(r"172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}", host):
+        return True
+    if re.fullmatch(r"100\.\d{1,3}\.\d{1,3}\.\d{1,3}", host):
+        return True
+    return False
 
 
 def admin_pin_ok(handler: SimpleHTTPRequestHandler, pin: str) -> bool:
@@ -231,6 +265,40 @@ def admin_pin_ok(handler: SimpleHTTPRequestHandler, pin: str) -> bool:
         return True
     expected = str(load_config().get("adminPin", "4464572")).strip()
     return str(pin or "").strip() == expected
+
+
+def current_user(handler: SimpleHTTPRequestHandler) -> dict | None:
+    return user_from_token(session_token_from_handler(handler))
+
+
+def is_main_admin(handler: SimpleHTTPRequestHandler, pin: str = "") -> bool:
+    return admin_pin_ok(handler, pin)
+
+
+def is_operator_user(user: dict | None) -> bool:
+    return bool(user and user.get("role") == ROLE_OPERATOR and user.get("status") == STATUS_ACTIVE)
+
+
+def require_main_admin(handler: SimpleHTTPRequestHandler, data: dict | None = None, pin: str = "") -> bool:
+    data = data or {}
+    pin_value = str(pin or data.get("pin") or "").strip()
+    return is_main_admin(handler, pin_value)
+
+
+def require_pin_or_operator(
+    handler: SimpleHTTPRequestHandler,
+    data: dict | None = None,
+    pin: str = "",
+) -> tuple[bool, dict | None]:
+    """Returns (allowed, operator_user_or_None). Main admin (PIN) or role=operator."""
+    data = data or {}
+    pin_value = str(pin or data.get("pin") or "").strip()
+    if is_main_admin(handler, pin_value):
+        return True, None
+    user = current_user(handler)
+    if is_operator_user(user):
+        return True, user
+    return False, None
 
 
 def resolve_course_slug(raw: str | None) -> str:
@@ -989,6 +1057,29 @@ def cors_origins(cfg: dict) -> list[str]:
 
 
 
+def is_local_dev_origin(origin: str) -> bool:
+    """Allow browser previews / Live Server talking to local api.py."""
+    try:
+        u = urlparse(origin)
+    except Exception:
+        return False
+    if u.scheme not in ("http", "https"):
+        return False
+    host = (u.hostname or "").lower()
+    if host in ("localhost", "127.0.0.1", "::1"):
+        return True
+    # private LAN (phone testing against PC serve.bat)
+    parts = host.split(".")
+    if len(parts) == 4 and all(p.isdigit() for p in parts):
+        a, b = int(parts[0]), int(parts[1])
+        if a == 10 or a == 192 and b == 168 or a == 172 and 16 <= b <= 31:
+            return True
+    return False
+
+
+
+
+
 def auto_deploy_on_save(cfg: dict) -> bool:
 
     remote = cfg.get("remoteAccess") or {}
@@ -1043,13 +1134,17 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
             return
 
-        if origin in cors_origins(load_config()):
+        allowed = origin in cors_origins(load_config()) or is_local_dev_origin(origin)
+
+        if allowed:
 
             self.send_header("Access-Control-Allow-Origin", origin)
 
             self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
 
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+            self.send_header("Access-Control-Allow-Credentials", "true")
 
             self.send_header("Vary", "Origin")
 
@@ -1125,19 +1220,58 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
             return
 
+        if path == "/api/hymn/titles":
+            # Proxy hymn-app titles.json (avoids CORS when editing on localhost).
+            try:
+                req = urllib.request.Request(
+                    "https://thegospel.kr/hymnapp/titles.json",
+                    headers={"User-Agent": "VisionforLife/1.0", "Accept": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=20) as res:
+                    titles = json.loads(res.read().decode("utf-8"))
+                if not isinstance(titles, list):
+                    raise ValueError("invalid titles payload")
+                send_json(self, 200, {"ok": True, "titles": titles})
+            except Exception as exc:
+                send_json(self, 502, {"ok": False, "error": f"hymn titles unavailable: {exc}"})
+            return
+
         if path == "/api/auth/me":
             token = session_token_from_handler(self)
             user = user_from_token(token)
             send_json(self, 200, {"ok": bool(user), "user": user})
             return
 
+        if path == "/api/auth/notice":
+            user = current_user(self)
+            if not user:
+                send_json(self, 401, {"ok": False, "error": "login required"})
+                return
+            notice = get_unread_operator_message(user["id"])
+            send_json(self, 200, {"ok": True, "notice": notice})
+            return
+
         if path == "/api/admin/users":
             query = parse_qs(urlparse(self.path).query)
             pin = str((query.get("pin") or [""])[0]).strip()
-            if not admin_pin_ok(self, pin):
-                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+            allowed, op_user = require_pin_or_operator(self, pin=pin)
+            if not allowed:
+                send_json(self, 403, {"ok": False, "error": "admin or operator required"})
                 return
-            send_json(self, 200, {"ok": True, "users": list_users()})
+            # Pure operator session (no PIN) must not get main-admin UI, even on localhost bypass.
+            if op_user and not pin:
+                is_main = False
+            else:
+                is_main = is_main_admin(self, pin)
+            send_json(self, 200, {"ok": True, "users": list_users(), "isMainAdmin": is_main})
+            return
+
+        if path == "/api/admin/local-pin":
+            if not _is_localhost(self):
+                send_json(self, 403, {"ok": False, "error": "local only"})
+                return
+            pin = str(load_config().get("adminPin", "4464572")).strip()
+            send_json(self, 200, {"ok": True, "pin": pin})
             return
 
         if path == "/api/catalogs":
@@ -1201,14 +1335,16 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
         path = urlparse(self.path).path
 
-
-
         if path == "/api/admin/verify":
 
             data = read_json_body(self)
 
             if not admin_pin_required():
                 send_json(self, 200, {"ok": True})
+                return
+
+            if _is_localhost(self):
+                send_json(self, 200, {"ok": True, "localBypass": True})
                 return
 
             pin = str(data.get("pin", "")).strip()
@@ -1219,39 +1355,67 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
             return
 
+        if path == "/api/admin/deploy":
+            data = read_json_body(self)
+            if not require_main_admin(self, data):
+                send_json(self, 403, {"ok": False, "error": "main admin pin required"})
+                return
+
+            def _run_full_deploy() -> None:
+                try:
+                    result = deploy_to_thegospel()
+                    if result.get("ok"):
+                        files = ", ".join((result.get("files") or [])[:8])
+                        print(f"[deploy] OK thegospel.kr ({files})")
+                    else:
+                        print(f"[deploy] failed: {result.get('error')}")
+                except Exception as exc:
+                    print(f"[deploy] error: {exc}")
+
+            # Full FTP deploy can take several seconds — run in background, return immediately.
+            threading.Thread(target=_run_full_deploy, daemon=True).start()
+            send_json(self, 200, {
+                "ok": True,
+                "async": True,
+                "url": "https://thegospel.kr/visionforlife/",
+                "message": "thegospel.kr 배포 진행 중",
+            })
+            return
+
 
 
         if path == "/api/auth/register":
             data = read_json_body(self)
             try:
+                phone = str(data.get("phone") or data.get("email") or "")
                 user = register_user(
-                    str(data.get("email", "")),
+                    phone,
                     str(data.get("password", "")),
                     str(data.get("name", "")),
                 )
-                _, token = login_user(str(data.get("email", "")), str(data.get("password", "")))
             except ValueError as exc:
                 send_json(self, 400, {"ok": False, "error": str(exc)})
                 return
-            send_json_with_cookies(
-                self,
-                200,
-                {"ok": True, "user": user},
-                [f"{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={30 * 24 * 3600}"],
-            )
+            send_json(self, 200, {
+                "ok": True,
+                "user": user,
+                "pending": True,
+                "message": "등록되었습니다. 운영자 승인 후 로그인할 수 있습니다.",
+            })
             return
 
         if path == "/api/auth/login":
             data = read_json_body(self)
             try:
-                user, token = login_user(str(data.get("email", "")), str(data.get("password", "")))
+                phone = str(data.get("phone") or data.get("email") or "")
+                user, token = login_user(phone, str(data.get("password", "")))
             except ValueError as exc:
                 send_json(self, 401, {"ok": False, "error": str(exc)})
                 return
             send_json_with_cookies(
                 self,
                 200,
-                {"ok": True, "user": user},
+                {"ok": True, "user": user, "token": token},
                 [f"{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={30 * 24 * 3600}"],
             )
             return
@@ -1276,6 +1440,92 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             send_json(self, 200, {"ok": True, "user": updated})
             return
 
+        if path == "/api/auth/notice/read":
+            user = current_user(self)
+            if not user:
+                send_json(self, 401, {"ok": False, "error": "login required"})
+                return
+            mark_operator_message_read(user["id"])
+            send_json(self, 200, {"ok": True})
+            return
+
+        if path == "/api/admin/users/approve":
+            data = read_json_body(self)
+            allowed, _op = require_pin_or_operator(self, data)
+            if not allowed:
+                send_json(self, 403, {"ok": False, "error": "admin or operator required"})
+                return
+            try:
+                user_id = int(data.get("userId") or data.get("id") or 0)
+                updated = set_user_status(user_id, STATUS_ACTIVE)
+            except (TypeError, ValueError) as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "user": updated})
+            return
+
+        if path == "/api/admin/users/disable":
+            data = read_json_body(self)
+            allowed, _op = require_pin_or_operator(self, data)
+            if not allowed:
+                send_json(self, 403, {"ok": False, "error": "admin or operator required"})
+                return
+            try:
+                user_id = int(data.get("userId") or data.get("id") or 0)
+                updated = set_user_status(user_id, STATUS_DISABLED)
+            except (TypeError, ValueError) as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "user": updated})
+            return
+
+        if path == "/api/admin/users/set-role":
+            data = read_json_body(self)
+            if not require_main_admin(self, data):
+                send_json(self, 403, {"ok": False, "error": "main admin pin required"})
+                return
+            try:
+                user_id = int(data.get("userId") or data.get("id") or 0)
+                role = str(data.get("role") or "").strip()
+                if role not in (ROLE_LEARNER, ROLE_OPERATOR):
+                    raise ValueError("role must be learner or operator")
+                updated = set_user_role(user_id, role)
+            except (TypeError, ValueError) as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "user": updated})
+            return
+
+        if path == "/api/admin/users/message":
+            data = read_json_body(self)
+            allowed, _op = require_pin_or_operator(self, data)
+            if not allowed:
+                send_json(self, 403, {"ok": False, "error": "admin or operator required"})
+                return
+            try:
+                user_id = int(data.get("userId") or data.get("id") or 0)
+                msg = upsert_operator_message(user_id, str(data.get("body") or data.get("message") or ""))
+            except (TypeError, ValueError) as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "message": msg})
+            return
+
+        if path == "/api/admin/users/update-name":
+            data = read_json_body(self)
+            allowed, _op = require_pin_or_operator(self, data)
+            if not allowed:
+                send_json(self, 403, {"ok": False, "error": "admin or operator required"})
+                return
+            try:
+                user_id = int(data.get("userId") or data.get("id") or 0)
+                updated = update_user_name(user_id, str(data.get("name") or ""))
+            except (TypeError, ValueError) as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "user": updated})
+            return
+
         if path == "/api/catalogs":
             data = read_json_body(self)
             if not verify_admin_pin(data, self):
@@ -1284,11 +1534,19 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             slug = str(data.get("slug") or "").strip()
             title = str(data.get("title") or "").strip()
             description = str(data.get("description") or "").strip()
+            visibility = data.get("visibility")
+            published = data.get("published")
             if not slug or not title:
                 send_json(self, 400, {"ok": False, "error": "slug and title required"})
                 return
             try:
-                entry = create_catalog(slug, title, description)
+                entry = create_catalog(
+                    slug,
+                    title,
+                    description,
+                    None if published is None else bool(published),
+                    None if visibility is None else str(visibility),
+                )
             except ValueError as exc:
                 send_json(self, 400, {"ok": False, "error": str(exc)})
                 return
@@ -1349,6 +1607,10 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
             data = read_json_body(self)
 
+            if not verify_admin_pin(data, self):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+
             if not isinstance(data.get("nodes"), list) or not data.get("rootId"):
 
                 send_json(self, 400, {"error": "invalid mindmap"})
@@ -1374,6 +1636,10 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
                     break
 
             rel_path = f"data/courses/{slug}/mindmap.json"
+            # Keep on-disk mindmap free of request-only fields.
+            data.pop("courseSlug", None)
+            data.pop("course_slug", None)
+            data.pop("pin", None)
             save_mindmap(slug, data)
             catalog_synced = sync_catalog_from_mindmap(slug, data)
 
@@ -1403,7 +1669,48 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
             return
 
+        if path == "/api/course-image":
+            import base64
+            import time
 
+            data = read_json_body(self)
+            if not verify_admin_pin(data, self):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+            try:
+                slug = resolve_course_slug(str(data.get("courseSlug") or data.get("course_slug") or ""))
+            except ValueError:
+                send_json(self, 400, {"error": "invalid course slug"})
+                return
+            raw_name = str(data.get("filename") or "image.png")
+            ext = os.path.splitext(raw_name)[1].lower()
+            allowed = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+            if ext not in allowed:
+                send_json(self, 400, {"error": "unsupported image type"})
+                return
+            b64 = str(data.get("contentBase64") or data.get("content_base64") or "")
+            if not b64:
+                send_json(self, 400, {"error": "missing image data"})
+                return
+            try:
+                binary = base64.b64decode(b64, validate=False)
+            except Exception:
+                send_json(self, 400, {"error": "invalid image data"})
+                return
+            if len(binary) > 4 * 1024 * 1024:
+                send_json(self, 400, {"error": "image too large (max 4MB)"})
+                return
+            stem = os.path.splitext(os.path.basename(raw_name))[0]
+            stem = re.sub(r"[^a-zA-Z0-9._-]+", "-", stem).strip("-._")[:40] or "image"
+            saved_name = f"{int(time.time())}-{stem}{ext}"
+            out_dir = os.path.join(ROOT, "data", "courses", slug, "images")
+            os.makedirs(out_dir, exist_ok=True)
+            out_path = os.path.join(out_dir, saved_name)
+            with open(out_path, "wb") as f:
+                f.write(binary)
+            rel = f"data/courses/{slug}/images/{saved_name}"
+            send_json(self, 200, {"ok": True, "path": rel, "filename": saved_name, "courseSlug": slug})
+            return
 
         if path == "/api/ai/ask":
 
@@ -1442,11 +1749,19 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             slug = str(data.get("slug") or "").strip()
             title = str(data.get("title") or "").strip()
             description = str(data.get("description") or "").strip()
+            visibility = data.get("visibility", None)
+            published = data.get("published", None)
             if not slug or not title:
                 send_json(self, 400, {"ok": False, "error": "slug and title required"})
                 return
             try:
-                entry = update_catalog(slug, title, description)
+                entry = update_catalog(
+                    slug,
+                    title,
+                    description,
+                    None if published is None else bool(published),
+                    None if visibility is None else str(visibility),
+                )
             except ValueError as exc:
                 send_json(self, 400, {"ok": False, "error": str(exc)})
                 return
@@ -1554,7 +1869,7 @@ def print_access_urls(port: int, cfg: dict | None = None) -> None:
     print("  폰에서 최신 내용: 운영자 저장 후 [새로고침] 버튼")
     print("  Wi-Fi 접속 안 되면 allow-phone.bat (관리자 1회)")
     print("  외출 설정: REMOTE-ACCESS.md · setup-tailscale.bat")
-    print("  API: /api/auth/*, POST /api/admin/verify, POST /api/mindmap, POST /api/ai/ask")
+    print("  API: /api/auth/*, POST /api/admin/verify, POST /api/mindmap, POST /api/course-image, POST /api/ai/ask")
 
 
 def main() -> None:
@@ -1567,7 +1882,9 @@ def main() -> None:
 
     voyage_key = resolve_voyage_key(cfg)
 
-    server = HTTPServer(("", PORT), VisionforLifeHandler)
+    server = ThreadingHTTPServer(("", PORT), VisionforLifeHandler)
+    server.daemon_threads = True
+    server.allow_reuse_address = True
 
     print_access_urls(PORT, cfg)
 
