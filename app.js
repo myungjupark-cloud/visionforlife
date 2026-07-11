@@ -567,11 +567,33 @@
     if (els.btnBackToCatalogs) els.btnBackToCatalogs.hidden = !inCatalog;
     if (els.btnAddCatalog) els.btnAddCatalog.hidden = !state.adminCatalog || !inCatalogs;
     if (els.btnAddCourse) els.btnAddCourse.hidden = !state.adminCatalog || !inCatalog;
-    if (els.btnReset) {
-      els.btnReset.title = inCourse ? "과정 목록" : (inCatalog ? "카탈로그 목록" : "목록");
-      els.btnReset.textContent = inCourse ? "과정 목록" : (inCatalog ? "카탈로그 목록" : "목록");
-    }
+    updateResetButtonLabel();
     updateCatalogAuthCta();
+  }
+
+  /** Header list button: in-lesson → 처음으로; at course root → 홈/과정 목록. */
+  function updateResetButtonLabel() {
+    if (!els.btnReset) return;
+    var screen = state.screen;
+    if (screen === "course" && state.data && !isAtRoot()) {
+      els.btnReset.title = "처음으로";
+      els.btnReset.textContent = "처음으로";
+      return;
+    }
+    if (screen === "course") {
+      var cat = state.activeCatalogSlug;
+      var multi = cat && (state.adminCatalog || coursesInActiveCatalogCount(cat) > 1);
+      els.btnReset.title = multi ? "과정 목록" : "홈";
+      els.btnReset.textContent = multi ? "과정 목록" : "홈";
+      return;
+    }
+    if (screen === "catalog") {
+      els.btnReset.title = "카탈로그 목록";
+      els.btnReset.textContent = "카탈로그 목록";
+      return;
+    }
+    els.btnReset.title = "목록";
+    els.btnReset.textContent = "목록";
   }
 
   function catalogProgressFor(course) {
@@ -2821,6 +2843,7 @@
         els.btnBack.textContent = getDepth() === 1 ? "← 1단계 목록" : "← 이전";
       }
     }
+    updateResetButtonLabel();
     renderBreadcrumb();
     renderOutlineTreePanel();
 
@@ -2903,6 +2926,11 @@
 
   function resetView() {
     if (state.screen === "course") {
+      // 단계 중: 과정 소개(처음으로). 루트에서만 상위(과정 목록/홈).
+      if (state.data && !isAtRoot()) {
+        courseRootView();
+        return;
+      }
       var cat = state.activeCatalogSlug;
       var courseCount = coursesInActiveCatalogCount(cat);
       if (cat && (state.adminCatalog || courseCount > 1)) {
@@ -4992,15 +5020,14 @@
     return false;
   }
 
-  /** One screen level back: prev lesson → intro → catalog → home. */
+  /** System back: lesson → course intro → catalog/home → exit. (← 이전은 navigateAppBack) */
   function stepAppBack() {
     if (closeBackOverlays()) return true;
 
     if (state.screen === "course" && state.data && !isAtRoot()) {
       backCtl.quiet = true;
       try {
-        if (state.explored.length > 2) goBack();
-        else courseRootView();
+        courseRootView();
       } finally { backCtl.quiet = false; }
       syncUrl();
       return true;
@@ -5094,6 +5121,8 @@
 
     if (backCtl.undoing) {
       backCtl.undoing = false;
+      // history.go(1)이 syncUrl 이후에 끝나며 옛 hash로 덮어쓰는 레이스 방지
+      syncUrl();
       return;
     }
 
