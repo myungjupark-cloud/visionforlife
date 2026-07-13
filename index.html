@@ -2,19 +2,20 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#0a1628">
-  <meta name="description" content="VisionforLife — 목표와 진도에 맞춘 여정형 마이크로-LMS">
-  <title>생명공과</title>
-  <link rel="manifest" href="manifest.json?v=6">
+  <meta name="description" content="VisionforLife — 작은 공부가 모여 만드는 성장 여행">
+  <title>VisionforLife</title>
+  <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="생명공과">
-  <meta name="application-name" content="생명공과">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VisionforLife">
+  <meta name="application-name" content="VisionforLife">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="icon" href="icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="app.css?v=21">
+  <link rel="stylesheet" href="app.css?v=25">
   <script>
     (function () {
       var path = location.pathname || "";
@@ -49,10 +50,10 @@
 
   <main class="app-main" id="app-main">
     <section id="catalog-panel" class="catalog-panel">
-      <p class="catalog-eyebrow">여정형 마이크로-LMS</p>
-      <button type="button" id="btn-back-to-catalogs" class="focus-back catalog-back" hidden>← 카탈로그 목록</button>
-      <h2 id="catalog-title" class="catalog-title">카탈로그</h2>
-      <p id="catalog-lead" class="catalog-lead">학습 카탈로그를 선택하세요. 카탈로그 안에 과정이 있습니다.</p>
+      <p class="catalog-eyebrow">작은 공부가 모여 만드는 성장 여행</p>
+      <button type="button" id="btn-back-to-catalogs" class="focus-back catalog-back" hidden>← 주제 목록</button>
+      <h2 id="catalog-title" class="catalog-title">학습 주제</h2>
+      <p id="catalog-lead" class="catalog-lead">배우고 싶은 주제를 골라 주세요. 주제마다 수업이 준비되어 있습니다.</p>
       <section id="catalog-auth-cta" class="catalog-auth-cta" hidden>
         <p class="catalog-auth-cta__text">학습 진도를 저장하려면 회원 등록이 필요합니다. 등록 후 운영자 승인을 받아 주세요.</p>
         <div class="catalog-auth-cta__actions">
@@ -263,6 +264,7 @@
         <textarea id="ai-answer" class="admin-input admin-ai-answer" rows="12" readonly placeholder="질문하면 답변이 여기에 표시됩니다."></textarea>
       </label>
       <div class="admin-ai-actions">
+        <button type="button" id="btn-ai-copy" class="btn btn-sm" disabled title="마크다운 원문 전체 복사">복사</button>
         <button type="button" id="btn-ai-insert" class="btn btn-sm btn-primary" disabled>설명에 넣기</button>
         <button type="button" id="btn-ai-append" class="btn btn-sm" disabled>설명에 추가</button>
       </div>
@@ -353,6 +355,15 @@
     </div>
   </div>
 
+  <div id="scr-scrim" class="scr-scrim" hidden aria-hidden="true"></div>
+  <div id="scr-popup" class="scr-popup" role="dialog" aria-modal="true" aria-labelledby="scr-title" hidden>
+    <div class="scr-popup__head">
+      <h3 id="scr-title" class="scr-popup__title"></h3>
+      <button type="button" id="scr-close" class="scr-popup__close" aria-label="닫기">×</button>
+    </div>
+    <div id="scr-body" class="scr-popup__body"></div>
+  </div>
+
   <div id="app-update-modal" class="app-update-modal" hidden>
     <div class="app-update-modal__backdrop" data-close aria-hidden="true"></div>
     <div class="app-update-modal__panel" role="dialog" aria-modal="true" aria-label="업데이트 내역">
@@ -364,8 +375,9 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="markdown.js?v=10"></script>
+  <script src="markdown.js?v=12"></script>
+  <script src="scr-link.js?v=1"></script>
   <script src="version.js?v=6"></script>
-  <script src="app.js?v=108"></script>
+  <script src="app.js?v=118"></script>
 </body>
 </html>

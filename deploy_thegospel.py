@@ -25,8 +25,10 @@ STATIC_FILES = [
     "icon.svg",
     "icon-192.png",
     "icon-512.png",
+    "visionforlife-icon-maskable-512.png",
     "apple-touch-icon.png",
     "markdown.js",
+    "scr-link.js",
     "version.js",
     "api.php",
     "api.config.php",
@@ -43,6 +45,9 @@ def find_deploy_config() -> Path | None:
 
 def collect_data_files() -> list[str]:
     files = ["data/catalogs.json"]
+    bible_verses = ROOT / "bible" / "verses.json"
+    if bible_verses.is_file():
+        files.append("bible/verses.json")
     catalogs_dir = ROOT / "data" / "catalogs"
     if catalogs_dir.is_dir():
         for path in sorted(catalogs_dir.rglob("*.json")):

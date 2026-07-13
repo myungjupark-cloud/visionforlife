@@ -517,6 +517,15 @@ body.is-resizing-admin::after {
   word-break: keep-all;
 }
 
+.admin-aside-item.is-unlinked .admin-aside-item-label {
+  color: var(--text-muted);
+}
+
+.admin-aside-unlinked {
+  font-size: 0.72rem;
+  color: rgba(255, 196, 120, 0.9);
+}
+
 .admin-aside-item-actions {
   display: flex;
   flex-wrap: wrap;
@@ -651,6 +660,12 @@ body.aside-open {
 
 .desc-rich-reveal {
   width: 100%;
+}
+
+/* 표는 blur 래퍼 없이 직접 붙이므로 동일 등장만 */
+.focus-desc.is-rich .desc-table-wrap.desc-rich-reveal {
+  opacity: 0;
+  animation: text-reveal-soft 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .admin-ai-preview {
@@ -1543,7 +1558,7 @@ body.has-admin-toolbar .app-version-foot {
 }
 
 .catalog-card-wrap.is-admin .catalog-card {
-  padding-right: 4.5rem;
+  padding-right: 7.5rem;
 }
 
 .catalog-card__draft {
@@ -1571,22 +1586,45 @@ body.has-admin-toolbar .app-version-foot {
   background: rgba(70, 160, 100, 0.14);
 }
 
-.catalog-card-edit {
+.catalog-card-admin {
   position: absolute;
-  top: 0.85rem;
-  right: 0.75rem;
-  padding: 0.28rem 0.55rem;
+  top: 0.7rem;
+  right: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+}
+
+.catalog-card-order,
+.catalog-card-edit {
+  padding: 0.22rem 0.5rem;
   border-radius: 8px;
   border: 1px solid rgba(126, 184, 218, 0.35);
   background: rgba(20, 56, 88, 0.85);
   color: rgba(220, 236, 248, 0.95);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
   cursor: pointer;
 }
 
+.catalog-card-order:hover:not(:disabled),
 .catalog-card-edit:hover {
   border-color: rgba(160, 210, 245, 0.55);
   background: rgba(30, 72, 108, 0.92);
+}
+
+.catalog-card-order:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.catalog-card-edit {
+  position: static;
+  top: auto;
+  right: auto;
+  font-size: 0.78rem;
+  padding: 0.28rem 0.55rem;
 }
 
 .admin-input.is-readonly,
@@ -1885,3 +1923,95 @@ body.has-admin-toolbar .app-version-foot {
   line-height: 1.7;
   color: rgba(220, 236, 248, 0.9);
 }
+
+/* Scripture citation popup (learner) */
+.focus-desc .scr-ref,
+.aside-overlay__body .scr-ref {
+  display: inline;
+  color: #7eb8e8;
+  font-weight: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: #4a8fc4;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(126, 184, 232, 0.2);
+}
+
+.focus-desc .scr-ref:active,
+.aside-overlay__body .scr-ref:active {
+  color: #b8d9f5;
+}
+
+.scr-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: rgba(8, 16, 28, 0.55);
+}
+
+.scr-popup {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  top: 50%;
+  z-index: 230;
+  max-width: 520px;
+  margin: 0 auto;
+  max-height: min(72vh, 560px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(-50%);
+  background: #132033;
+  border: 1px solid rgba(126, 184, 232, 0.28);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  color: #e8eef6;
+}
+
+.scr-popup__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(126, 184, 232, 0.2);
+}
+
+.scr-popup__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.02em;
+  line-height: 1.4;
+  color: #dceaf8;
+}
+
+.scr-popup__close {
+  border: none;
+  background: transparent;
+  color: rgba(220, 236, 248, 0.75);
+  font-size: 1.4em;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.scr-popup__body {
+  padding: 14px 16px 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  font-size: 0.96em;
+  line-height: 1.85;
+}
+
+.scr-verse {
+  margin: 0 0 0.85em;
+}
+
+.scr-verse b {
+  color: #e8c547;
+  font-weight: 600;
+  margin-right: 0.35em;
+}
+

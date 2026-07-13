@@ -38,6 +38,24 @@ def visibility_to_published(visibility: str) -> bool:
     return normalize_visibility(visibility) != VISIBILITY_PRIVATE
 
 
+def resolve_visibility_update(
+    *,
+    current_visibility=None,
+    current_published=None,
+    visibility=None,
+    published=None,
+) -> str:
+    """카탈로그 수정 시 visibility/published 입력을 최종 visibility로 해석."""
+    if visibility is not None and str(visibility).strip() != "":
+        return normalize_visibility(visibility, published)
+    if published is False:
+        return VISIBILITY_PRIVATE
+    if published is True:
+        prev = normalize_visibility(current_visibility, current_published)
+        return prev if prev != VISIBILITY_PRIVATE else VISIBILITY_PUBLIC
+    return normalize_visibility(current_visibility, current_published)
+
+
 def load_catalogs_index() -> dict:
     if not os.path.isfile(CATALOGS_INDEX_PATH):
         return {"version": 1, "catalogs": []}
@@ -145,18 +163,54 @@ def update_catalog(
     entry = dict(catalogs[idx])
     entry["title"] = title
     entry["description"] = (description or "").strip()
-    if visibility is not None:
-        vis = normalize_visibility(visibility, published)
-    elif published is not None:
-        vis = normalize_visibility(entry.get("visibility"), published)
-    else:
-        vis = normalize_visibility(entry.get("visibility"), entry.get("published"))
+    vis = resolve_visibility_update(
+        current_visibility=entry.get("visibility"),
+        current_published=entry.get("published"),
+        visibility=visibility,
+        published=published,
+    )
     entry["visibility"] = vis
     entry["published"] = visibility_to_published(vis)
     catalogs[idx] = entry
     index["catalogs"] = catalogs
     save_catalogs_index(index)
     return entry
+
+
+def reorder_catalog(slug: str, direction: str) -> dict:
+    """Move a catalog up/down in home-screen order. Returns the moved entry."""
+    slug = (slug or "").strip()
+    direction = (direction or "").strip().lower()
+    if not slug:
+        raise ValueError("slug required")
+    if direction not in ("up", "down"):
+        raise ValueError("direction must be up or down")
+
+    index = load_catalogs_index()
+    catalogs = list(index.get("catalogs") or [])
+    if not catalogs:
+        raise ValueError("catalog not found")
+
+    catalogs.sort(key=lambda c: int(c.get("order") or 999))
+    for i, c in enumerate(catalogs):
+        c["order"] = i + 1
+
+    idx = next((i for i, c in enumerate(catalogs) if c.get("slug") == slug), None)
+    if idx is None:
+        raise ValueError("catalog not found")
+
+    delta = -1 if direction == "up" else 1
+    new_idx = idx + delta
+    if new_idx < 0 or new_idx >= len(catalogs):
+        return dict(catalogs[idx])
+
+    catalogs[idx], catalogs[new_idx] = catalogs[new_idx], catalogs[idx]
+    for i, c in enumerate(catalogs):
+        c["order"] = i + 1
+
+    index["catalogs"] = catalogs
+    save_catalogs_index(index)
+    return dict(catalogs[new_idx])
 
 
 def catalog_meta(slug: str) -> dict | None:
@@ -291,6 +345,7 @@ def create_course(
             "title": title,
             "subtitle": (subtitle or "").strip(),
             "catalogSlug": catalog_slug,
+            "layout": "linear",
             "updatedAt": now,
         },
         "nodes": [
@@ -298,7 +353,7 @@ def create_course(
                 "id": "root",
                 "title": title,
                 "description": (description or "").strip()
-                or "아래 1단계 주제 중 하나를 선택해 이어가세요.",
+                or "아래에서 과를 순서대로 선택해 이어가세요.",
                 "scripture": "",
                 "x": 0,
                 "y": 0,

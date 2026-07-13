@@ -83,6 +83,7 @@ from courses import (
     sync_catalog_from_mindmap,
     update_catalog,
     update_course,
+    reorder_catalog,
 )
 
 
@@ -1544,8 +1545,8 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
                     slug,
                     title,
                     description,
-                    None if published is None else bool(published),
-                    None if visibility is None else str(visibility),
+                    published=None if published is None else bool(published),
+                    visibility=None if visibility is None else str(visibility),
                 )
             except ValueError as exc:
                 send_json(self, 400, {"ok": False, "error": str(exc)})
@@ -1747,6 +1748,20 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
                 send_json(self, 403, {"ok": False, "error": "admin pin required"})
                 return
             slug = str(data.get("slug") or "").strip()
+            action = str(data.get("action") or "").strip().lower()
+            direction = str(data.get("direction") or "").strip().lower()
+            if action == "reorder" or direction in ("up", "down"):
+                if not slug:
+                    send_json(self, 400, {"ok": False, "error": "slug required"})
+                    return
+                try:
+                    entry = reorder_catalog(slug, direction or "up")
+                except ValueError as exc:
+                    send_json(self, 400, {"ok": False, "error": str(exc)})
+                    return
+                index = load_catalogs_index()
+                send_json(self, 200, {"ok": True, "catalog": entry, "catalogs": index.get("catalogs", [])})
+                return
             title = str(data.get("title") or "").strip()
             description = str(data.get("description") or "").strip()
             visibility = data.get("visibility", None)
@@ -1759,8 +1774,8 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
                     slug,
                     title,
                     description,
-                    None if published is None else bool(published),
-                    None if visibility is None else str(visibility),
+                    published=None if published is None else bool(published),
+                    visibility=None if visibility is None else str(visibility),
                 )
             except ValueError as exc:
                 send_json(self, 400, {"ok": False, "error": str(exc)})

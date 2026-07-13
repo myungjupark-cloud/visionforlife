@@ -1,76 +1,132 @@
-var CACHE = "visionforlife-v87";
+/* VisionforLife — PWA service worker (/visionforlife/ 전용, 로컬은 scope 기준) */
+var CACHE = "vfl-v1";
 
-function scopeUrl(rel) {
-  return new URL(rel, self.registration.scope || self.location).href;
+function appBase() {
+  try {
+    var scope = (self.registration && self.registration.scope) || self.location.href;
+    var u = new URL(scope);
+    var p = u.pathname || "/";
+    if (!p.endsWith("/")) p = p.replace(/\/[^/]*$/, "/") || "/";
+    return p;
+  } catch (e) {
+    return "/visionforlife/";
+  }
 }
 
-function isShellPath(pathname) {
-  if (!pathname || pathname === "/") return true;
-  if (pathname === "/index.html") return true;
-  return /\.(html|js|css)$/i.test(pathname);
+var BASE = appBase();
+
+var PRECACHE = [
+  BASE,
+  BASE + "index.html",
+  BASE + "manifest.json",
+  BASE + "app.js",
+  BASE + "app.css",
+  BASE + "markdown.js",
+  BASE + "scr-link.js",
+  BASE + "version.js",
+  BASE + "data/catalogs.json",
+  BASE + "icon-192.png",
+  BASE + "icon-512.png",
+  BASE + "visionforlife-icon-maskable-512.png",
+  BASE + "apple-touch-icon.png"
+];
+
+function isSameOrigin(url) {
+  try {
+    return new URL(url).origin === self.location.origin;
+  } catch (e) {
+    return false;
+  }
 }
 
-function isDataPath(pathname) {
-  return pathname.indexOf("/data/") >= 0;
+function underApp(pathname) {
+  if (BASE === "/") return true;
+  var prefix = BASE.replace(/\/$/, "");
+  return pathname === prefix || pathname.indexOf(BASE) === 0;
 }
 
-self.addEventListener("install", function (e) {
-  e.waitUntil(
+function networkFirst(request) {
+  return fetch(request)
+    .then(function (res) {
+      if (res && res.ok) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (cache) {
+          cache.put(request, copy);
+        });
+      }
+      return res;
+    })
+    .catch(function () {
+      return caches.match(request);
+    });
+}
+
+function staleWhileRevalidate(request) {
+  return caches.match(request).then(function (cached) {
+    var fetched = fetch(request)
+      .then(function (res) {
+        if (res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (cache) {
+            cache.put(request, copy);
+          });
+        }
+        return res;
+      })
+      .catch(function () {
+        return cached;
+      });
+    return cached || fetched;
+  });
+}
+
+self.addEventListener("install", function (event) {
+  event.waitUntil(
     caches.open(CACHE).then(function (cache) {
-      return cache.add(scopeUrl("data/catalogs.json")).catch(function () {});
+      return Promise.all(
+        PRECACHE.map(function (url) {
+          return cache.add(url).catch(function () {});
+        })
+      );
     })
   );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", function (e) {
-  e.waitUntil(
+self.addEventListener("activate", function (event) {
+  event.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(
-        keys.filter(function (k) { return k !== CACHE; }).map(function (k) {
-          return caches.delete(k);
-        })
+        keys
+          .filter(function (key) {
+            return key !== CACHE;
+          })
+          .map(function (key) {
+            return caches.delete(key);
+          })
       );
-    }).then(function () { return self.clients.claim(); })
-  );
-});
-
-self.addEventListener("fetch", function (e) {
-  var url = new URL(e.request.url);
-  if (e.request.method !== "GET") return;
-  if (url.pathname.indexOf("/api/") >= 0) return;
-
-  if (isDataPath(url.pathname)) {
-    e.respondWith(
-      fetch(e.request).then(function (res) {
-        if (res && res.ok) {
-          var copy = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
-        }
-        return res;
-      }).catch(function () {
-        return caches.match(e.request);
-      })
-    );
-    return;
-  }
-
-  if (isShellPath(url.pathname)) {
-    e.respondWith(
-      fetch(e.request).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
-        return res;
-      }).catch(function () {
-        return caches.match(e.request);
-      })
-    );
-    return;
-  }
-
-  e.respondWith(
-    fetch(e.request).catch(function () {
-      return caches.match(e.request);
     })
   );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", function (event) {
+  if (event.request.method !== "GET") return;
+  if (!isSameOrigin(event.request.url)) return;
+
+  var path = new URL(event.request.url).pathname;
+  if (!underApp(path)) return;
+  if (path.indexOf("/api/") >= 0 || path.indexOf(BASE + "api/") === 0) return;
+
+  // 과정·카탈로그 데이터·성경: 네트워크 우선
+  if (
+    path.indexOf(BASE + "data/") === 0 ||
+    path.indexOf(BASE + "bible/") === 0
+  ) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  // 셸·기타: stale-while-revalidate
+  event.respondWith(staleWhileRevalidate(event.request));
 });

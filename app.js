@@ -118,6 +118,11 @@
     asideOverlayTitle: $("aside-overlay-title"),
     asideOverlayBody: $("aside-overlay-body"),
     asideOverlayBack: $("aside-overlay-back"),
+    scrScrim: $("scr-scrim"),
+    scrPopup: $("scr-popup"),
+    scrTitle: $("scr-title"),
+    scrBody: $("scr-body"),
+    scrClose: $("scr-close"),
     hymnAudio: $("hymn-audio"),
     editScripture: $("edit-scripture"),
     aiQuestion: $("ai-question"),
@@ -127,6 +132,7 @@
     aiAnswerPreview: $("ai-answer-preview"),
     aiAnswerMeta: $("ai-answer-meta"),
     btnAiAsk: $("btn-ai-ask"),
+    btnAiCopy: $("btn-ai-copy"),
     btnAiInsert: $("btn-ai-insert"),
     btnAiAppend: $("btn-ai-append"),
     moveParentRow: $("move-parent-row"),
@@ -421,7 +427,7 @@
   }
 
   function denyCatalogAccess(slug) {
-    toast("아직 공개되지 않은 카탈로그입니다");
+    toast("아직 공개되지 않은 학습 주제입니다");
   }
 
   function catalogRequiresMemberLessons(slug) {
@@ -588,8 +594,8 @@
       return;
     }
     if (screen === "catalog") {
-      els.btnReset.title = "카탈로그 목록";
-      els.btnReset.textContent = "카탈로그 목록";
+      els.btnReset.title = "주제 목록";
+      els.btnReset.textContent = "주제 목록";
       return;
     }
     els.btnReset.title = "목록";
@@ -1201,10 +1207,18 @@
       renderResumeBanner();
       return;
     }
-    listEl.innerHTML = catalogs.map(function (catalog) {
-      var editBtn = state.adminCatalog
-        ? '<button type="button" class="catalog-card-edit" data-catalog-slug="' + esc(catalog.slug) + '" title="카탈로그 편집">편집</button>'
-        : "";
+    listEl.innerHTML = catalogs.map(function (catalog, index) {
+      var adminBtns = "";
+      if (state.adminCatalog) {
+        adminBtns =
+          '<div class="catalog-card-admin">' +
+          '<button type="button" class="catalog-card-order" data-catalog-slug="' + esc(catalog.slug) + '" data-dir="up" title="위로" ' +
+          (index === 0 ? "disabled" : "") + ">▲</button>" +
+          '<button type="button" class="catalog-card-order" data-catalog-slug="' + esc(catalog.slug) + '" data-dir="down" title="아래로" ' +
+          (index === catalogs.length - 1 ? "disabled" : "") + ">▼</button>" +
+          '<button type="button" class="catalog-card-edit" data-catalog-slug="' + esc(catalog.slug) + '" title="카탈로그 편집">편집</button>' +
+          "</div>";
+      }
       var draftBadge = visibilityBadgeHtml(catalog);
       return (
         '<div class="catalog-card-wrap' + (state.adminCatalog ? " is-admin" : "") + '">' +
@@ -1212,10 +1226,40 @@
         '<span class="catalog-card__title">' + esc(catalog.title || catalog.slug) + draftBadge + "</span>" +
         (catalog.description ? '<span class="catalog-card__desc">' + esc(catalog.description) + "</span>" : "") +
         '<span class="catalog-card__meta"><span>과정 열기 →</span></span>' +
-        "</button>" + editBtn + "</div>"
+        "</button>" + adminBtns + "</div>"
       );
     }).join("");
     renderResumeBanner();
+  }
+
+  function moveCatalogOrder(slug, direction) {
+    if (!state.adminCatalog || !slug) return;
+    if (direction !== "up" && direction !== "down") return;
+    authFetch(apiUrl("/api/catalogs"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pin: state.adminPin,
+        action: "reorder",
+        slug: slug,
+        direction: direction
+      })
+    })
+      .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.data.ok) {
+          toast((result.data && result.data.error) || "순서 변경 실패");
+          return;
+        }
+        if (Array.isArray(result.data.catalogs)) {
+          state.catalogs = result.data.catalogs;
+        }
+        renderCatalogsList();
+        toast(direction === "up" ? "한 칸 위로 옮겼습니다" : "한 칸 아래로 옮겼습니다");
+      })
+      .catch(function () {
+        toast("서버에 연결할 수 없습니다 — 로컬(serve.bat)에서 변경하세요");
+      });
   }
 
   function renderCoursesList() {
@@ -1351,15 +1395,15 @@
 
   function updateCatalogHeader() {
     if (state.screen === "catalogs") {
-      if (els.catalogTitle) els.catalogTitle.textContent = "카탈로그";
-      if (els.catalogLead) els.catalogLead.textContent = "학습 카탈로그를 선택하세요. 카탈로그 안에 과정이 있습니다.";
+      if (els.catalogTitle) els.catalogTitle.textContent = "학습 주제";
+      if (els.catalogLead) els.catalogLead.textContent = "배우고 싶은 주제를 골라 주세요. 주제마다 수업이 준비되어 있습니다.";
       if (els.catalogGoals) els.catalogGoals.hidden = !state.user;
       return;
     }
     if (state.screen === "catalog") {
       var meta = (state.catalogs || []).find(function (c) { return c.slug === state.activeCatalogSlug; });
-      if (els.catalogTitle) els.catalogTitle.textContent = (meta && meta.title) || state.activeCatalogSlug || "과정";
-      if (els.catalogLead) els.catalogLead.textContent = (meta && meta.description) || "이 카탈로그의 과정을 선택하세요.";
+      if (els.catalogTitle) els.catalogTitle.textContent = (meta && meta.title) || state.activeCatalogSlug || "주제";
+      if (els.catalogLead) els.catalogLead.textContent = (meta && meta.description) || "이 주제의 수업을 선택하세요.";
       if (els.catalogGoals) els.catalogGoals.hidden = true;
       if (els.catalogResume) els.catalogResume.hidden = true;
     }
@@ -2029,6 +2073,10 @@
 
   function updateAdminButtons() {
     if (!state.admin || !els.btnAddChild) return;
+    if (isLinearCourse()) {
+      els.btnAddChild.textContent = "과 추가";
+      return;
+    }
     els.btnAddChild.textContent = isAtRoot()
       ? "1단계 주제 추가"
       : nextTier() + "단계 주제 추가";
@@ -2462,28 +2510,232 @@
     return text.length * REVEAL_CHAR_S + 0.35;
   }
 
+  function linkifyScriptureInElement(root) {
+    if (!root || !window.ScrLink || typeof ScrLink.splitToParts !== "function") return;
+    var skip = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, BUTTON: 1, A: 1 };
+    var nodes = [];
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var node;
+    while ((node = walker.nextNode())) {
+      var p = node.parentElement;
+      if (!p) continue;
+      if (skip[p.tagName]) continue;
+      if (p.closest && (p.closest(".scr-ref") || p.closest(".desc-aside-link") || p.closest(".desc-ext-link"))) continue;
+      if (!node.textContent || !/\d/.test(node.textContent)) continue;
+      nodes.push(node);
+    }
+    nodes.forEach(function (textNode) {
+      var parts = ScrLink.splitToParts(textNode.textContent);
+      if (!parts.length || (parts.length === 1 && !parts[0].ref)) return;
+      var frag = document.createDocumentFragment();
+      parts.forEach(function (part) {
+        if (part.ref) {
+          var span = document.createElement("span");
+          span.className = "scr-ref";
+          span.setAttribute("role", "button");
+          span.tabIndex = 0;
+          span.setAttribute("data-ref", part.ref);
+          span.textContent = part.label || part.ref;
+          frag.appendChild(span);
+        } else {
+          frag.appendChild(document.createTextNode(part.text || ""));
+        }
+      });
+      if (textNode.parentNode) textNode.parentNode.replaceChild(frag, textNode);
+    });
+  }
+
+  function linkifyScriptureHtml(html) {
+    if (!html) return html;
+    var temp = document.createElement("div");
+    temp.innerHTML = html;
+    linkifyScriptureInElement(temp);
+    return temp.innerHTML;
+  }
+
+  /** Rich markdown, or plain text that contains scripture refs → HTML. Else null (plain path). */
+  function descriptionToHtml(text) {
+    if (!text) return "";
+    if (window.FaithMarkdown && FaithMarkdown.isRich(text)) {
+      return linkifyScriptureHtml(FaithMarkdown.toHtml(text));
+    }
+    if (window.ScrLink && typeof ScrLink.findRefs === "function" && ScrLink.findRefs(text).length) {
+      return linkifyScriptureHtml('<p class="desc-p">' + esc(text).replace(/\n/g, "<br>") + "</p>");
+    }
+    return null;
+  }
+
+  var BIBLE = null;
+  var BIBLE_PROMISE = null;
+
+  function loadBible(cb) {
+    if (BIBLE) {
+      cb(BIBLE);
+      return;
+    }
+    if (!BIBLE_PROMISE) {
+      BIBLE_PROMISE = fetch(assetUrl("bible/verses.json"), { credentials: "same-origin" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("bible");
+          return res.json();
+        })
+        .then(function (data) {
+          BIBLE = data;
+          return data;
+        });
+    }
+    BIBLE_PROMISE.then(cb).catch(function () {
+      toast("성경 본문을 불러오지 못했습니다");
+    });
+  }
+
+  function parseScrRef(ref) {
+    var chapter = String(ref || "").match(/^(\S+)\s+(\d+)장$/);
+    if (chapter) {
+      return { book: chapter[1], kind: "chapter", ranges: [{ ch: parseInt(chapter[2], 10), v1: 1, v2: 999 }] };
+    }
+    var cross = String(ref || "").match(/^(\S+)\s+(\d+):(\d+)-(\d+):(\d+)$/);
+    if (cross) {
+      return {
+        book: cross[1],
+        kind: "verse",
+        ranges: [{
+          ch: parseInt(cross[2], 10),
+          v1: parseInt(cross[3], 10),
+          v2: parseInt(cross[5], 10),
+          ch2: parseInt(cross[4], 10)
+        }]
+      };
+    }
+    var simple = String(ref || "").match(/^(\S+)\s+(\d+):(\d+)(?:-(\d+))?$/);
+    if (simple) {
+      var ch = parseInt(simple[2], 10);
+      var v1 = parseInt(simple[3], 10);
+      var v2 = simple[4] ? parseInt(simple[4], 10) : v1;
+      return { book: simple[1], kind: "verse", ranges: [{ ch: ch, v1: v1, v2: v2 }] };
+    }
+    return null;
+  }
+
+  function expandScrRef(ref, bible) {
+    var parsed = parseScrRef(ref);
+    if (!parsed || !bible || !bible.books || !bible.books[parsed.book]) return [];
+    var book = bible.books[parsed.book];
+    var out = [];
+    parsed.ranges.forEach(function (r) {
+      if (parsed.kind === "chapter") {
+        var chMap = book.c[String(r.ch)];
+        if (!chMap) return;
+        Object.keys(chMap).map(Number).sort(function (a, b) { return a - b; }).forEach(function (v) {
+          out.push({ ch: r.ch, v: v, text: chMap[String(v)] });
+        });
+        return;
+      }
+      if (r.ch2 != null && r.ch2 !== r.ch) {
+        var ch1 = book.c[String(r.ch)] || {};
+        Object.keys(ch1).map(Number).sort(function (a, b) { return a - b; }).forEach(function (v) {
+          if (v >= r.v1) out.push({ ch: r.ch, v: v, text: ch1[String(v)] });
+        });
+        for (var c = r.ch + 1; c < r.ch2; c++) {
+          var mid = book.c[String(c)];
+          if (!mid) continue;
+          Object.keys(mid).map(Number).sort(function (a, b) { return a - b; }).forEach(function (v) {
+            out.push({ ch: c, v: v, text: mid[String(v)] });
+          });
+        }
+        var chLast = book.c[String(r.ch2)] || {};
+        Object.keys(chLast).map(Number).sort(function (a, b) { return a - b; }).forEach(function (v) {
+          if (v <= r.v2) out.push({ ch: r.ch2, v: v, text: chLast[String(v)] });
+        });
+        return;
+      }
+      for (var v = r.v1; v <= r.v2; v++) {
+        var t = book.c[String(r.ch)] && book.c[String(r.ch)][String(v)];
+        if (t) out.push({ ch: r.ch, v: v, text: t });
+      }
+    });
+    return out;
+  }
+
+  function closeScrPopup() {
+    if (els.scrScrim) {
+      els.scrScrim.hidden = true;
+      els.scrScrim.setAttribute("aria-hidden", "true");
+    }
+    if (els.scrPopup) els.scrPopup.hidden = true;
+  }
+
+  function openScrPopup(ref) {
+    if (!ref || !els.scrPopup || !els.scrBody) return;
+    loadBible(function (bible) {
+      var verses = expandScrRef(ref, bible);
+      if (!verses.length) {
+        toast("성경 본문을 찾지 못했습니다");
+        return;
+      }
+      var parsed = parseScrRef(ref);
+      var bookMeta = parsed && bible.books[parsed.book];
+      if (els.scrTitle) {
+        els.scrTitle.textContent =
+          (bookMeta ? bookMeta.name : (parsed && parsed.book) || "") +
+          " · " +
+          String(ref).replace(/^\S+\s*/, "");
+      }
+      els.scrBody.innerHTML = verses.map(function (v) {
+        return '<p class="scr-verse"><b>' + v.ch + ":" + v.v + "</b>" + esc(v.text) + "</p>";
+      }).join("");
+      els.scrPopup.hidden = false;
+      if (els.scrScrim) {
+        els.scrScrim.hidden = false;
+        els.scrScrim.setAttribute("aria-hidden", "false");
+      }
+      els.scrBody.scrollTop = 0;
+    });
+  }
+
+  function bindScriptureUi() {
+    if (bindScriptureUi._bound) return;
+    bindScriptureUi._bound = true;
+    if (els.scrClose) els.scrClose.addEventListener("click", closeScrPopup);
+    if (els.scrScrim) els.scrScrim.addEventListener("click", closeScrPopup);
+    document.addEventListener("click", function (ev) {
+      var el = ev.target.closest && ev.target.closest(".scr-ref");
+      if (!el) return;
+      if (!el.closest(".focus-desc, .aside-overlay__body")) return;
+      ev.preventDefault();
+      openScrPopup(el.getAttribute("data-ref"));
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      var el = ev.target.closest && ev.target.closest(".scr-ref");
+      if (!el) return;
+      if (!el.closest(".focus-desc, .aside-overlay__body")) return;
+      ev.preventDefault();
+      openScrPopup(el.getAttribute("data-ref"));
+    });
+  }
+
   function renderDescription(el, text, animated, startDelay) {
-    var rich = window.FaithMarkdown && FaithMarkdown.isRich(text);
     if (!text) {
       el.className = "focus-desc is-empty-static";
       el.innerHTML = "";
       el.textContent = "";
       return startDelay;
     }
-    if (!rich) {
+    var html = descriptionToHtml(text);
+    if (html != null) {
       if (!animated) {
-        setPlainText(el, text, "focus-desc");
+        el.className = "focus-desc is-rich";
+        el.innerHTML = html;
         return startDelay;
       }
-      return revealDescription(el, text, startDelay);
+      return revealRichDescription(el, html, startDelay);
     }
-    var html = FaithMarkdown.toHtml(text);
     if (!animated) {
-      el.className = "focus-desc is-rich";
-      el.innerHTML = html;
+      setPlainText(el, text, "focus-desc");
       return startDelay;
     }
-    return revealRichDescription(el, html, startDelay);
+    return revealDescription(el, text, startDelay);
   }
 
   function revealRichDescription(el, html, startDelay) {
@@ -2506,6 +2758,15 @@
         continue;
       }
       if (node.nodeType !== 1) continue;
+      // filter:blur 조상은 표 레이아웃을 깨뜨리므로 표는 감싸지 않음
+      var isTable = node.classList && node.classList.contains("desc-table-wrap");
+      if (isTable) {
+        node.classList.add("desc-rich-reveal");
+        node.style.animationDelay = delay + "s";
+        el.appendChild(node);
+        delay += REVEAL_CHUNK_S;
+        continue;
+      }
       var wrap = document.createElement("div");
       wrap.className = "reveal-block desc-rich-reveal";
       wrap.style.animationDelay = delay + "s";
@@ -2983,13 +3244,6 @@
     return ids;
   }
 
-  function pruneNodeAsides(node) {
-    if (!node) return;
-    var keep = asideMarkerIds(node.description);
-    var list = Array.isArray(node.asides) ? node.asides : [];
-    node.asides = list.filter(function (a) { return a && a.id && keep[a.id]; });
-  }
-
   function renderAsideList(node) {
     if (!els.asideList) return;
     var list = (node && Array.isArray(node.asides)) ? node.asides : [];
@@ -2998,13 +3252,17 @@
       els.asideList.innerHTML = "";
       return;
     }
+    var linked = asideMarkerIds(node && node.description);
     els.asideList.hidden = false;
     els.asideList.innerHTML =
       '<p class="admin-section-title">부가설명</p>' +
       list.map(function (a) {
+        var missing = !(a && a.id && linked[a.id]);
         return (
-          '<div class="admin-aside-item" data-aside-id="' + esc(a.id) + '">' +
-            '<span class="admin-aside-item-label">' + esc(a.label || a.id) + "</span>" +
+          '<div class="admin-aside-item' + (missing ? " is-unlinked" : "") + '" data-aside-id="' + esc(a.id) + '">' +
+            '<span class="admin-aside-item-label">' + esc(a.label || a.id) +
+            (missing ? ' <span class="admin-aside-unlinked">(설명에 링크 없음 — 붙여넣기 또는 삭제)</span>' : "") +
+            "</span>" +
             '<div class="admin-aside-item-actions">' +
               '<button type="button" class="btn btn-sm admin-aside-edit" data-aside-id="' + esc(a.id) + '">수정</button>' +
               '<button type="button" class="btn btn-sm btn-danger admin-aside-delete" data-aside-id="' + esc(a.id) + '">삭제</button>' +
@@ -3059,8 +3317,48 @@
   }
 
   function setAiAnswerActions(enabled) {
+    if (els.btnAiCopy) els.btnAiCopy.disabled = !enabled;
     if (els.btnAiInsert) els.btnAiInsert.disabled = !enabled;
     if (els.btnAiAppend) els.btnAiAppend.disabled = !enabled;
+  }
+
+  function copyAiAnswer() {
+    if (!els.aiAnswer) return;
+    var text = els.aiAnswer.value;
+    if (!String(text || "").trim()) {
+      toast("복사할 답변이 없습니다");
+      return;
+    }
+    function done() {
+      toast("마크다운 원문을 복사했습니다");
+    }
+    function fail() {
+      toast("복사에 실패했습니다 — 원문 칸에서 직접 선택해 주세요");
+    }
+    function fallbackCopy() {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (ok) done();
+        else fail();
+      } catch (e2) {
+        fail();
+      }
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fallbackCopy);
+        return;
+      }
+    } catch (e1) { /* fall through */ }
+    fallbackCopy();
   }
 
   var ADMIN_PANEL_KEY = "visionforlife-admin-width";
@@ -3817,15 +4115,9 @@
     }
     if (els.asideOverlayBody) {
       var titleEnd = title ? title.length * REVEAL_CHAR_S + 0.12 : 0;
-      if (window.FaithMarkdown) {
-        // 부가설명은 줄바꿈·**강조**도 HTML로 렌더 후 블록 순차 펼침
-        revealRichDescription(els.asideOverlayBody, FaithMarkdown.toHtml(body), titleEnd);
-        els.asideOverlayBody.className = "aside-overlay__body focus-desc is-rich";
-      } else {
-        renderDescription(els.asideOverlayBody, body, true, titleEnd);
-        els.asideOverlayBody.className =
-          "aside-overlay__body " + (els.asideOverlayBody.className || "focus-desc");
-      }
+      // 설명과 동일한 마크다운 경로 (표·제목·목록·찬송 등)
+      renderDescription(els.asideOverlayBody, body, true, titleEnd);
+      els.asideOverlayBody.className = "aside-overlay__body focus-desc is-rich";
     }
     els.asideOverlay.hidden = false;
     document.body.classList.add("aside-open");
@@ -3954,7 +4246,8 @@
     bindExternalLinkClicks(els.asideOverlayBody);
     document.addEventListener("keydown", function (ev) {
       if (ev.key === "Escape") {
-        if (els.asideOverlay && !els.asideOverlay.hidden) closeAside();
+        if (els.scrPopup && !els.scrPopup.hidden) closeScrPopup();
+        else if (els.asideOverlay && !els.asideOverlay.hidden) closeAside();
         else if (els.linkOpenOverlay && !els.linkOpenOverlay.hidden) closeLinkOpenSheet();
         else if (els.imageFormOverlay && !els.imageFormOverlay.hidden) closeImageForm();
         else if (els.linkFormOverlay && !els.linkFormOverlay.hidden) closeLinkForm();
@@ -4188,7 +4481,8 @@
     node.title = els.editTitle.value.trim() || "제목 없음";
     node.description = els.editDesc.value.trim();
     node.scripture = els.editScripture.value.trim();
-    pruneNodeAsides(node);
+    // 부가설명은 마커 잘라내기·붙이기 중에도 유지한다.
+    // (마커가 잠깐 없다고 prune 하면 본문이 사라짐 — 삭제는 삭제 버튼만)
   }
 
   function applyEditor() {
@@ -4211,11 +4505,20 @@
       toast("현재 노드가 없습니다");
       return;
     }
-    var parentId = isAtRoot() ? state.data.rootId : state.centerId;
+    var parentId;
+    if (isLinearCourse()) {
+      // linear: 체인 끝에 이어 붙인다 (root 직속 분기는 만들지 않음)
+      if (!state.data.meta) state.data.meta = {};
+      state.data.meta.layout = "linear";
+      var chain = linearCourseLessons();
+      parentId = chain.length ? chain[chain.length - 1].id : state.data.rootId;
+    } else {
+      parentId = isAtRoot() ? state.data.rootId : state.centerId;
+    }
     var id = newId();
     state.data.nodes.push({
       id: id,
-      title: "새 질문",
+      title: isLinearCourse() ? "새 과" : "새 질문",
       description: "",
       scripture: "",
       x: 0,
@@ -4227,6 +4530,15 @@
       to: id,
       type: "hierarchy"
     });
+    if (isLinearCourse()) {
+      state.centerId = state.data.rootId;
+      state.explored = [state.data.rootId];
+      state.adminEditId = id;
+      fillEditor(nodeById(id));
+      renderFocus("static");
+      toast("새 과가 추가되었습니다");
+      return;
+    }
     if (parentId === state.data.rootId) {
       state.centerId = state.data.rootId;
       state.adminEditId = id;
@@ -4247,10 +4559,46 @@
       toast("루트 노드는 삭제할 수 없습니다");
       return;
     }
-    if (!nodeById(id)) {
+    var node = nodeById(id);
+    if (!node) {
       toast("삭제할 주제를 찾을 수 없습니다");
       return;
     }
+    var title = (node.title || "이 주제").trim() || "이 주제";
+
+    // 선형 과정(과 체인): 한 과만 빼고 앞뒤를 다시 잇는다.
+    // (기존 트리 삭제면 1과 삭제가 2과~끝까지 전부 지워져 위험함)
+    if (isLinearCourse()) {
+      var parentId = parentOf(id);
+      var kids = childrenOf(id);
+      var msg =
+        "「" + title + "」만 삭제할까요?\n" +
+        (kids.length
+          ? "앞뒤 과정은 그대로 이어집니다. (하위 " + kids.length + "개는 삭제되지 않습니다)"
+          : "다른 과정은 그대로 둡니다.");
+      if (!window.confirm(msg)) return;
+      state.data.nodes = state.data.nodes.filter(function (n) { return n.id !== id; });
+      state.data.edges = state.data.edges.filter(function (e) {
+        return e.from !== id && e.to !== id;
+      });
+      if (parentId) {
+        kids.forEach(function (child) {
+          state.data.edges.push({
+            id: "e" + parentId + "-" + child.id,
+            from: parentId,
+            to: child.id,
+            type: "hierarchy"
+          });
+        });
+      }
+      state.explored = state.explored.filter(function (eid) { return eid !== id; });
+      if (!state.explored.length) state.explored = [state.data.rootId];
+      state.adminEditId = null;
+      openNode(state.explored[state.explored.length - 1], false, "navigate");
+      toast("「" + title + "」을(를) 삭제했습니다 — 저장을 눌러 반영하세요");
+      return;
+    }
+
     var descendants = [];
     var queue = [id];
     var seen = {};
@@ -4264,10 +4612,10 @@
         queue.push(child.id);
       });
     }
-    var msg = descendants.length
-      ? "이 주제와 하위 " + descendants.length + "개를 모두 삭제할까요?"
-      : "이 주제를 삭제할까요?";
-    if (!window.confirm(msg)) return;
+    var treeMsg = descendants.length
+      ? "「" + title + "」과 그 아래 주제 " + descendants.length + "개를 모두 삭제할까요?\n(하위 주제까지 함께 지워집니다)"
+      : "「" + title + "」을(를) 삭제할까요?";
+    if (!window.confirm(treeMsg)) return;
     var remove = seen;
     state.data.nodes = state.data.nodes.filter(function (n) { return !remove[n.id]; });
     state.data.edges = state.data.edges.filter(function (e) {
@@ -4571,6 +4919,14 @@
   function bindEvents() {
     if (els.catalogList) {
       els.catalogList.addEventListener("click", function (e) {
+        var orderBtn = e.target.closest(".catalog-card-order");
+        if (orderBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (orderBtn.disabled) return;
+          moveCatalogOrder(orderBtn.dataset.catalogSlug, orderBtn.dataset.dir);
+          return;
+        }
         var editBtn = e.target.closest(".catalog-card-edit");
         if (editBtn) {
           e.preventDefault();
@@ -4808,12 +5164,14 @@
     if (els.btnMoveUp) els.btnMoveUp.addEventListener("click", function () { applyReorder(-1); });
     if (els.btnMoveDown) els.btnMoveDown.addEventListener("click", function () { applyReorder(1); });
     if (els.btnAiAsk) els.btnAiAsk.addEventListener("click", askLocalAi);
+    if (els.btnAiCopy) els.btnAiCopy.addEventListener("click", copyAiAnswer);
     if (els.btnAiInsert) els.btnAiInsert.addEventListener("click", function () { insertAiAnswer("replace"); });
     if (els.btnAiAppend) els.btnAiAppend.addEventListener("click", function () { insertAiAnswer("append"); });
     if (els.btnInsertHymn) els.btnInsertHymn.addEventListener("click", insertHymnAtCursor);
     if (els.btnInsertLink) els.btnInsertLink.addEventListener("click", insertLinkAtCursor);
     if (els.btnInsertImage) els.btnInsertImage.addEventListener("click", insertImageAtCursor);
     bindAsideUi();
+    bindScriptureUi();
     bindHymnPlayer();
     loadHymnTitles();
     els.btnSave.addEventListener("click", saveMindmap);
@@ -5004,6 +5362,7 @@
   }
 
   function closeBackOverlays() {
+    if (els.scrPopup && !els.scrPopup.hidden) { closeScrPopup(); return true; }
     if (els.asideOverlay && !els.asideOverlay.hidden) { closeAside(); return true; }
     if (els.linkOpenOverlay && !els.linkOpenOverlay.hidden) { closeLinkOpenSheet(); return true; }
     if (els.imageFormOverlay && !els.imageFormOverlay.hidden) { closeImageForm(); return true; }
@@ -5243,9 +5602,10 @@
 
   bootApp();
   if ("serviceWorker" in navigator) {
-    var swVerMatch = (document.querySelector('script[src*="app.js"]') || {}).src || "";
-    var swVer = (swVerMatch.match(/[?&]v=(\d+)/) || [])[1] || "1";
-    navigator.serviceWorker.register(assetUrl("sw.js") + "?v=" + swVer, { updateViaCache: "none" })
-      .catch(function () {});
+    // 찬송가·라이프스터디와 동일: 배포 경로면 절대 경로로 등록
+    var swUrl = /\/visionforlife(\/|$)/i.test(location.pathname || "")
+      ? "/visionforlife/sw.js"
+      : assetUrl("sw.js");
+    navigator.serviceWorker.register(swUrl).catch(function () {});
   }
 })();

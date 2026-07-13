@@ -67,12 +67,22 @@
     return out;
   }
 
-  function isTableRow(line) {
-    return /^\|.+\|$/.test(String(line || "").trim());
+  function isTableSep(line) {
+    var s = String(line || "").trim();
+    if (!s || s.indexOf("-") < 0 || s.indexOf("|") < 0) return false;
+    if (/^\|[\s:\-|]+\|$/.test(s)) return true;
+    var core = s.replace(/^\|/, "").replace(/\|$/, "").trim();
+    return /^:?-{1,}:?(\s*\|\s*:?-{1,}:?)+$/.test(core);
   }
 
-  function isTableSep(line) {
-    return /^\|[\s:\-|]+\|$/.test(String(line || "").trim());
+  function isTableRow(line) {
+    var s = String(line || "").trim();
+    if (!s || s.indexOf("|") < 0) return false;
+    if (/^#{1,3}\s/.test(s)) return false;
+    if (isTableSep(s)) return false;
+    // | a | b | 또는 GFM 스타일 a | b
+    var cells = parseTableRow(s);
+    return cells.length >= 2;
   }
 
   function parseTableRow(line) {
@@ -146,12 +156,17 @@
     );
   }
 
-  function isBlockStart(line) {
+  function isTableStart(lines, i) {
+    return isTableRow(lines[i]) && i + 1 < lines.length && isTableSep(lines[i + 1]);
+  }
+
+  function isBlockStart(line, lines, i) {
     if (!line || !line.trim()) return false;
     if (/^#{1,3}\s/.test(line)) return true;
     if (/^---+\s*$/.test(line)) return true;
     if (/^[-*•]\s+/.test(line)) return true;
-    if (isTableRow(line)) return true;
+    // 표는 구분선이 있을 때만 블록 — 아니면 `|` 줄에서 i가 안 늘어나 무한 루프
+    if (lines && i != null && isTableStart(lines, i)) return true;
     if (parseHymnLine(line)) return true;
     if (parseImageLine(line)) return true;
     return false;
@@ -166,7 +181,7 @@
     while (i < lines.length) {
       var line = lines[i];
 
-      if (isTableRow(line) && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      if (isTableStart(lines, i)) {
         var header = parseTableRow(line);
         i += 2;
         var rows = [];
@@ -235,9 +250,19 @@
       }
 
       var paras = [];
-      while (i < lines.length && lines[i].trim() && !isBlockStart(lines[i])) {
+      var startI = i;
+      while (i < lines.length && lines[i].trim() && !isBlockStart(lines[i], lines, i)) {
         paras.push(inlineFormat(lines[i]));
         i += 1;
+      }
+      // 안전장치: 처리되지 않은 줄에서 i가 멈추면 강제 소비 (예전 표 오탐 무한 루프 방지)
+      if (!paras.length) {
+        if (i === startI && i < lines.length) {
+          paras.push(inlineFormat(lines[i]));
+          i += 1;
+        } else {
+          break;
+        }
       }
       html.push('<p class="desc-p">' + paras.join("<br>") + "</p>");
     }
@@ -250,6 +275,7 @@
     return (
       /^#{1,3}\s/m.test(text) ||
       /^\|.+\|/m.test(text) ||
+      /^.+\|.+\n\s*\|?[\s:\-|]+\|?\s*$/m.test(text) ||
       /^[-*•]\s/m.test(text) ||
       /^---+\s*$/m.test(text) ||
       /찬송가\s*\d+\s*장/.test(text) ||
