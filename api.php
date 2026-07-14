@@ -366,6 +366,21 @@ try {
     vfl_json(200, ['ok' => true, 'catalogs' => $index['catalogs'] ?? []]);
   }
 
+  if ($method === 'GET' && $path === '/api/site-settings') {
+    $file = VFL_ROOT . '/data/site-settings.json';
+    $settings = ['version' => 1, 'authRequired' => true];
+    if (is_file($file)) {
+      $raw = json_decode(file_get_contents($file), true);
+      if (is_array($raw)) {
+        $settings['version'] = isset($raw['version']) ? (int)$raw['version'] : 1;
+        $settings['authRequired'] = array_key_exists('authRequired', $raw)
+          ? (bool)$raw['authRequired']
+          : true;
+      }
+    }
+    vfl_json(200, ['ok' => true, 'settings' => $settings]);
+  }
+
   if ($method === 'GET' && $path === '/api/courses') {
     $catalog = trim((string)($_GET['catalog'] ?? ''));
     $user = vfl_user_from_token($db, vfl_token_from_request());
@@ -608,8 +623,8 @@ try {
     ]);
   }
 
-  // Catalog/course/mindmap/AI editing stays on local Python — return clear error on hosting.
-  if (preg_match('#^/api/(catalogs|courses|mindmap|ai/ask|course-image)$#', $path) && in_array($method, ['POST', 'PATCH'], true)) {
+  // Catalog/course/mindmap/AI/site-settings editing stays on local Python — return clear error on hosting.
+  if (preg_match('#^/api/(catalogs|courses|mindmap|ai/ask|course-image|site-settings)$#', $path) && in_array($method, ['POST', 'PATCH'], true)) {
     vfl_json(501, [
       'ok' => false,
       'error' => '콘텐츠 편집은 집 PC 서버(serve.bat)에서만 가능합니다',

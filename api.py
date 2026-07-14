@@ -98,6 +98,37 @@ CONFIG_PATH = os.path.join(ROOT, "config.local.json")
 
 CONFIG_EXAMPLE = os.path.join(ROOT, "config.example.json")
 
+SITE_SETTINGS_PATH = os.path.join(ROOT, "data", "site-settings.json")
+
+
+def default_site_settings() -> dict:
+    return {"version": 1, "authRequired": True}
+
+
+def load_site_settings() -> dict:
+    settings = default_site_settings()
+    try:
+        with open(SITE_SETTINGS_PATH, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        if isinstance(raw, dict):
+            settings["version"] = int(raw.get("version") or 1)
+            settings["authRequired"] = bool(raw.get("authRequired", True))
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return settings
+
+
+def save_site_settings(auth_required: bool) -> dict:
+    settings = {
+        "version": 1,
+        "authRequired": bool(auth_required),
+    }
+    os.makedirs(os.path.dirname(SITE_SETTINGS_PATH), exist_ok=True)
+    with open(SITE_SETTINGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(settings, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    return settings
+
 DEFAULT_SEARCH_DB = os.path.join(os.path.dirname(ROOT), "bible-qna", "search.db")
 
 SIBLING_TOPIC_MAP_CONFIG = os.path.join(os.path.dirname(ROOT), "bible-topic-map", "config.local.json")
@@ -1280,6 +1311,11 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             send_json(self, 200, {"ok": True, "catalogs": index.get("catalogs", [])})
             return
 
+        if path == "/api/site-settings":
+            settings = load_site_settings()
+            send_json(self, 200, {"ok": True, "settings": settings})
+            return
+
         if path == "/api/courses":
             query = parse_qs(urlparse(self.path).query)
             catalog_slug = str((query.get("catalog") or [""])[0]).strip()
@@ -1741,6 +1777,18 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
     def do_PATCH(self) -> None:
         path = urlparse(self.path).path
+
+        if path == "/api/site-settings":
+            data = read_json_body(self)
+            if not verify_admin_pin(data, self):
+                send_json(self, 403, {"ok": False, "error": "admin pin required"})
+                return
+            if "authRequired" not in data:
+                send_json(self, 400, {"ok": False, "error": "authRequired required"})
+                return
+            settings = save_site_settings(bool(data.get("authRequired")))
+            send_json(self, 200, {"ok": True, "settings": settings})
+            return
 
         if path == "/api/catalogs":
             data = read_json_body(self)

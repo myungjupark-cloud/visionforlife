@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "catalogSlug": "the-mystery-of-human-life",
+  "rootId": "root",
+  "meta": {
+    "title": "1. God’s Plan",
+    "subtitle": "",
+    "catalogSlug": "the-mystery-of-human-life",
+    "layout": "linear",
+    "updatedAt": "2026-07-14T12:39:34.493624+09:00"
+  },
+  "nodes": [
+    {
+      "id": "root",
+      "title": "1. God’s Plan",
+      "description": "### 1. God’s Plan\n\nGod desires to express Himself through man (Rom. 8:29). For this purpose, He created man in His own image (Gen. 1:26). Just as a glove is made in the image of a hand to contain a hand, so also man is made in the image of God to contain God. By receiving God as his content, man can express God (2 Cor. 4:7).\n\n![20260714_121143](data/courses/mystery-of-human-life/images/1783999712-20260714_121143.png)\n\n![20260714_121129](data/courses/mystery-of-human-life/images/1783999430-20260714_121129.png)",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "nmrk3edvxk7dq",
+      "title": "2. Man",
+      "description": "To fulfill His plan, God made man as a vessel (Rom. 9:21-24). T\n\n![20260714_121157](data/courses/mystery-of-human-life/images/1783999820-20260714_121157.png)\n\nhis vessel has three parts: body, soul, and spirit (1 Thes. 5:23). The body contacts and receives the things of the physical realm. The soul, the mental faculty, contacts and receives the things of the psychological realm. And the human spirit, the innermost part of man, was made to contact and receive God Himself (John 4:24). Man was created not merely to contain food in his stomach, or to contain knowledge in his mind, but to contain God in his spirit (Eph. 5:18).\n\n![20260714_121211](data/courses/mystery-of-human-life/images/1783999828-20260714_121211.png)",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "nmrk3h8r7kkbi",
+      "title": "3. Man’s Fall",
+      "description": "### 3. Man’s Fall\n\nBut before man could receive God as life into his spirit, sin entered into him (Rom. 5:12). Sin deadened his spirit (Eph. 2:1), made him an enemy of God in his mind (Col. 1:21), and transmuted his body into sinful flesh (Gen. 6:3; Rom. 6:12). Thus, sin damaged all three parts of man, alienating him from God. In this condition, man could not receive God.\n\n![20260714_121229](data/courses/mystery-of-human-life/images/1783999930-20260714_121229.png)",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "nmrk3il96pcw5",
+      "title": "4. Christ’s Redemption for God’s Dispensing",
+      "description": "### 4. Christ’s Redemption for God’s Dispensing\n\nNevertheless, man’s fall did not deter God from fulfilling His original plan. In order to accomplish His plan, God first became a man called Jesus Christ (John 1:1, 14). Then Christ died on the cross to redeem man (Eph. 1:7), thus taking away his sin and bringing him back to God (John 1:29; Eph. 2:13). Finally, in resurrection, He became the life-giving Spirit so that He could dispense His unsearchably rich life into man’s spirit (1 Cor. 15:45b; John 20:22; 3:6).\n\n\n![20260714_121250](data/courses/mystery-of-human-life/images/1783999985-20260714_121250.png)",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "nmrk3jqazmwtn",
+      "title": "5. Man’s Regeneration",
+      "description": "### 5. Man’s Regeneration\n\nSince Christ has become the life-giving Spirit, man can now receive God’s life into his spirit. The Bible calls this regeneration (1 Pet. 1:3; John 3:3). To receive this life, man needs to repent to God and believe in the Lord Jesus Christ (Acts 20:21; 16:31).\n\n\n![20260714_121303](data/courses/mystery-of-human-life/images/1784000071-20260714_121303.png)\n\n### To be regenerated, simply come to the Lord with an open and honest heart and say to Him:\n\n* Lord Jesus, I am a sinner.\n* I need You.\n* Thank You for dying for me.\n* Lord Jesus, forgive me.\n* Cleanse me from all my sins.\n* I believe You rose from the dead.\n* I receive You right now as my Savior and life.\n* Come into me! Fill me with Your life!\n* Lord Jesus, I give myself to You for Your purpose.\n\n\n![20260714_121318](data/courses/mystery-of-human-life/images/1784000190-20260714_121318.png)",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "nmrk3o0etgug9",
+      "title": "6. God’s Full Salvation",
+      "description": "### 6. God’s Full Salvation\n\nAfter regeneration, a believer needs to be baptized (Mark 16:16). Then God begins the lifelong process of gradually spreading Himself as life from the believer's spirit into his soul (Eph. 3:17). This process, called transformation (Rom. 12:2), requires human cooperation (Phil. 2:12). \n\n\n![20260714_121341](data/courses/mystery-of-human-life/images/1784000242-20260714_121341.png)\n\n\nThe believer cooperates by allowing the Lord to spread into his soul until all his desires, thoughts, and decisions become one with those of Christ. Finally, at Christ's return, God will fully saturate the believer's body with His life. This is called glorification (Phil. 3:21). Thus, instead of being empty and damaged in each part, this man is filled and saturated with the life of God. This is God's full salvation! Such a man expresses God and fulfills God's plan!",
+      "scripture": "",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": "enmrk3edvxk7dq",
+      "from": "root",
+      "to": "nmrk3edvxk7dq",
+      "type": "hierarchy"
+    },
+    {
+      "id": "enmrk3h8r7kkbi",
+      "from": "nmrk3edvxk7dq",
+      "to": "nmrk3h8r7kkbi",
+      "type": "hierarchy"
+    },
+    {
+      "id": "enmrk3il96pcw5",
+      "from": "nmrk3h8r7kkbi",
+      "to": "nmrk3il96pcw5",
+      "type": "hierarchy"
+    },
+    {
+      "id": "enmrk3jqazmwtn",
+      "from": "nmrk3il96pcw5",
+      "to": "nmrk3jqazmwtn",
+      "type": "hierarchy"
+    },
+    {
+      "id": "enmrk3o0etgug9",
+      "from": "nmrk3jqazmwtn",
+      "to": "nmrk3o0etgug9",
+      "type": "hierarchy"
+    }
+  ]
+}

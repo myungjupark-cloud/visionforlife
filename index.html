@@ -1,21 +1,34 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#0a1628">
+  <meta name="theme-color" content="#f6f1e6">
   <meta name="description" content="VisionforLife — 작은 공부가 모여 만드는 성장 여행">
   <title>VisionforLife</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="VisionforLife">
   <meta name="application-name" content="VisionforLife">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="app.css?v=25">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("visionforlife-theme");
+        if (t !== "dark" && t !== "light") t = "light";
+        document.documentElement.setAttribute("data-theme", t);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", t === "dark" ? "#0a1628" : "#f6f1e6");
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="app.css?v=29">
   <script>
     (function () {
       var path = location.pathname || "";
@@ -72,6 +85,10 @@
       </section>
       <div id="catalog-admin-bar" class="catalog-admin-bar" hidden>
         <span class="admin-badge">메인 운영자</span>
+        <label class="admin-check catalog-auth-toggle">
+          <input type="checkbox" id="site-auth-required" checked>
+          로그인·회원등록
+        </label>
         <button type="button" id="btn-add-catalog" class="btn btn-sm btn-primary">+ 카탈로그 추가</button>
         <button type="button" id="btn-add-course" class="btn btn-sm btn-primary" hidden>+ 과정 추가</button>
         <button type="button" id="btn-admin-users" class="btn btn-sm">회원 관리</button>
@@ -276,15 +293,16 @@
 
   <div id="admin-editor-resizer" class="admin-editor-resizer" hidden role="separator" aria-orientation="vertical" aria-label="노드 편집 패널 폭 조절" title="좌우 폭 조절 — 드래그 (더블클릭: 기본 폭)"></div>
 
-  <div id="font-size-chip" class="sizechip" role="group" aria-label="글자 크기">
-    <button type="button" id="fs-down" class="sm" aria-label="글자 작게">가–</button>
-    <span class="sep" aria-hidden="true"></span>
-    <button type="button" id="fs-up" class="lg" aria-label="글자 크게">가＋</button>
+  <div id="corner-chips" class="corner-chips">
+    <div id="font-size-chip" class="sizechip" role="group" aria-label="글자 크기">
+      <button type="button" id="fs-down" class="sm" aria-label="글자 작게">가–</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button type="button" id="fs-up" class="lg" aria-label="글자 크게">가＋</button>
+    </div>
+    <div id="theme-chip" class="theme-chip" role="group" aria-label="화면 밝기">
+      <button type="button" id="btn-theme" title="화면 밝기 바꾸기">어두운 화면</button>
+    </div>
   </div>
-
-  <footer class="app-version-foot" aria-label="앱 버전">
-    <button type="button" id="app-ver-btn" class="app-ver-btn">Ver. · 업데이트 내역</button>
-  </footer>
 
   <div id="aside-form-overlay" class="admin-overlay aside-form-overlay" hidden>
     <div class="admin-modal aside-form-modal" id="aside-form-modal">
@@ -378,6 +396,6 @@
   <script src="markdown.js?v=12"></script>
   <script src="scr-link.js?v=1"></script>
   <script src="version.js?v=6"></script>
-  <script src="app.js?v=118"></script>
+  <script src="app.js?v=119"></script>
 </body>
 </html>

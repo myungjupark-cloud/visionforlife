@@ -44,7 +44,7 @@ def find_deploy_config() -> Path | None:
 
 
 def collect_data_files() -> list[str]:
-    files = ["data/catalogs.json"]
+    files = ["data/catalogs.json", "data/site-settings.json"]
     bible_verses = ROOT / "bible" / "verses.json"
     if bible_verses.is_file():
         files.append("bible/verses.json")
@@ -106,7 +106,7 @@ def upload_files(files: list[str]) -> dict:
         return {"ok": False, "error": "배포 로컬 폴더가 없습니다"}
 
     try:
-        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8-sig"))
     except (OSError, json.JSONDecodeError) as exc:
         return {"ok": False, "error": f"FTP 설정 읽기 실패: {exc}"}
 

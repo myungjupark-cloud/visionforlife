@@ -1,5 +1,5 @@
 /* VisionforLife — PWA service worker (/visionforlife/ 전용, 로컬은 scope 기준) */
-var CACHE = "vfl-v1";
+var CACHE = "vfl-v3";
 
 function appBase() {
   try {
@@ -25,6 +25,7 @@ var PRECACHE = [
   BASE + "scr-link.js",
   BASE + "version.js",
   BASE + "data/catalogs.json",
+  BASE + "data/site-settings.json",
   BASE + "icon-192.png",
   BASE + "icon-512.png",
   BASE + "visionforlife-icon-maskable-512.png",

@@ -35,7 +35,8 @@
     catalogs: [],
     courseSlug: null,
     catalog: [],
-    courseProgress: { nodes: {}, lastNodeId: null, percent: 0 }
+    courseProgress: { nodes: {}, lastNodeId: null, percent: 0 },
+    authRequired: true
   };
 
   var saveInFlight = false;
@@ -176,6 +177,7 @@
     btnAdminUsers: $("btn-admin-users"),
     btnCatalogDeploy: $("btn-catalog-deploy"),
     btnExitCatalogAdmin: $("btn-exit-catalog-admin"),
+    siteAuthRequired: $("site-auth-required"),
     courseAddOverlay: $("course-add-overlay"),
     courseFormTitle: $("course-form-title"),
     courseFormHint: $("course-form-hint"),
@@ -665,8 +667,81 @@
 
   function updateCatalogAuthCta() {
     if (!els.catalogAuthCta) return;
+    if (state.authRequired === false) {
+      els.catalogAuthCta.hidden = true;
+      return;
+    }
     var onHome = state.screen === "catalogs" || state.screen === "catalog";
     els.catalogAuthCta.hidden = !onHome || !!state.user;
+  }
+
+  function syncSiteAuthToggle() {
+    if (!els.siteAuthRequired) return;
+    els.siteAuthRequired.checked = state.authRequired !== false;
+  }
+
+  function applyAuthRequired(value) {
+    state.authRequired = value !== false;
+    syncSiteAuthToggle();
+    updateAccountButton();
+    updateCatalogAuthCta();
+  }
+
+  function loadSiteSettings() {
+    applyAuthRequired(true);
+    function applyFromPayload(payload) {
+      var settings = (payload && payload.settings) || payload || {};
+      applyAuthRequired(settings.authRequired !== false);
+    }
+    function loadStatic() {
+      return fetch("data/site-settings.json?_=" + Date.now())
+        .then(function (res) {
+          if (!res.ok) throw new Error("static settings missing");
+          return res.json();
+        })
+        .then(applyFromPayload)
+        .catch(function () {
+          applyAuthRequired(true);
+        });
+    }
+    return fetch(apiUrl("/api/site-settings"), { credentials: "same-origin" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("api settings unavailable");
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error("api settings invalid");
+        applyFromPayload(data);
+      })
+      .catch(function () {
+        return loadStatic();
+      });
+  }
+
+  function saveSiteAuthRequired(checked) {
+    var next = !!checked;
+    authFetch(apiUrl("/api/site-settings"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pin: state.adminPin,
+        authRequired: next
+      })
+    })
+      .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, status: res.status, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.data.ok) {
+          syncSiteAuthToggle();
+          toast((result.data && result.data.error) || "설정 저장 실패");
+          return;
+        }
+        applyAuthRequired(result.data.settings && result.data.settings.authRequired);
+        toast("저장됨 — 배포하면 홈페이지에 반영");
+      })
+      .catch(function () {
+        syncSiteAuthToggle();
+        toast("서버에 연결할 수 없습니다");
+      });
   }
 
   function updateGoalsUI() {
@@ -719,6 +794,7 @@
     state.adminCatalog = true;
     state.adminPin = pin || LOCAL_ADMIN_PIN || "";
     if (els.catalogAdminBar) els.catalogAdminBar.hidden = false;
+    syncSiteAuthToggle();
     if (els.adminOverlay) els.adminOverlay.hidden = true;
     if (els.btnAdmin) {
       els.btnAdmin.textContent = "운영중";
@@ -1550,12 +1626,15 @@
 
   function updateAccountButton() {
     if (!els.btnAccount) return;
-    els.btnAccount.hidden = false;
     if (state.user) {
+      els.btnAccount.hidden = false;
       var label = state.user.name || state.user.phone || state.user.email || "회원";
       els.btnAccount.textContent = label;
       els.btnAccount.title = "로그아웃";
+    } else if (state.authRequired === false) {
+      els.btnAccount.hidden = true;
     } else {
+      els.btnAccount.hidden = false;
       els.btnAccount.textContent = "로그인";
       els.btnAccount.title = "로그인·등록";
     }
@@ -3115,6 +3194,7 @@
   }
 
   function lessonAccessBlocked(id) {
+    if (state.authRequired === false) return false;
     if (state.user || state.admin || hasLocalSession()) return false;
     if (!state.data) return false;
     // 공개용: 비회원도 전체 열람. 회원용: 소개(root)만, 제1과부터 로그인.
@@ -3457,6 +3537,46 @@
     var down = document.getElementById("fs-down");
     if (up) up.addEventListener("click", function () { fs += 0.1; applyFs(); });
     if (down) down.addEventListener("click", function () { fs -= 0.1; applyFs(); });
+  }
+
+  function initTheme() {
+    var KEY = "visionforlife-theme";
+    var btn = document.getElementById("btn-theme");
+    var meta = document.querySelector('meta[name="theme-color"]');
+
+    function readTheme() {
+      try {
+        var t = localStorage.getItem(KEY);
+        if (t === "dark" || t === "light") return t;
+      } catch (e) { /* ignore */ }
+      return "light";
+    }
+
+    function applyTheme(theme) {
+      theme = theme === "dark" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      try { localStorage.setItem(KEY, theme); } catch (e) { /* ignore */ }
+      if (meta) meta.setAttribute("content", theme === "dark" ? "#0a1628" : "#f6f1e6");
+      if (btn) {
+        // Label shows the action (switch to the other theme)
+        if (theme === "dark") {
+          btn.textContent = "밝은 화면";
+          btn.setAttribute("aria-label", "밝은 화면으로 바꾸기");
+          btn.title = "밝은 화면으로 바꾸기";
+        } else {
+          btn.textContent = "어두운 화면";
+          btn.setAttribute("aria-label", "어두운 화면으로 바꾸기");
+          btn.title = "어두운 화면으로 바꾸기";
+        }
+      }
+    }
+
+    applyTheme(readTheme());
+    if (btn) {
+      btn.addEventListener("click", function () {
+        applyTheme(readTheme() === "dark" ? "light" : "dark");
+      });
+    }
   }
 
   var AI_MODE_KEY = "visionforlife-ai-mode";
@@ -4863,7 +4983,7 @@
       })
       .then(function (data) {
         state.data = normalizeMindmap(data);
-        var allowDeep = state.user || state.admin || hasLocalSession();
+        var allowDeep = state.authRequired === false || state.user || state.admin || hasLocalSession();
         var targetId = allowDeep ? (preferNodeId || state.courseProgress.lastNodeId) : null;
         if (targetId && nodeById(targetId)) {
           state.explored = buildExploredPath(targetId);
@@ -5177,6 +5297,11 @@
     els.btnSave.addEventListener("click", saveMindmap);
     if (els.btnDeploy) els.btnDeploy.addEventListener("click", deployToWeb);
     if (els.btnCatalogDeploy) els.btnCatalogDeploy.addEventListener("click", deployToWeb);
+    if (els.siteAuthRequired) {
+      els.siteAuthRequired.addEventListener("change", function () {
+        saveSiteAuthRequired(els.siteAuthRequired.checked);
+      });
+    }
     els.btnExport.addEventListener("click", exportJson);
     els.btnImport.addEventListener("click", function () { els.importFile.click(); });
     els.importFile.addEventListener("change", function () {
@@ -5540,6 +5665,7 @@
   function bootApp() {
     initPwaBackButton();
     initFontSize();
+    initTheme();
     initAiAskMode();
     initAdminPanelResize();
     initAuth();
@@ -5557,6 +5683,7 @@
       ensureCatalogsVisible();
     });
     loadLocalAdminPin();
+    var settingsReady = loadSiteSettings();
 
     // 카탈로그 홈은 세션 API와 무관하게 즉시 로드
     setScreen("catalogs");
@@ -5591,11 +5718,13 @@
       armForwardTrap();
     }
 
-    if (hasLocalSession()) {
-      fetchCurrentUser({ soft: true, maxAttempts: 4 }).then(afterSessionReady);
-    } else {
-      afterSessionReady();
-    }
+    settingsReady.then(function () {
+      if (hasLocalSession()) {
+        fetchCurrentUser({ soft: true, maxAttempts: 4 }).then(afterSessionReady);
+      } else {
+        afterSessionReady();
+      }
+    });
 
     ensureCatalogsVisible();
   }
