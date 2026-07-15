@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>책 작성 도구 · VisionforLife</title>
+<style>
+  :root{
+    --bg:#f6f1e6; --panel:#fffdf8; --ink:#4f4840; --muted:#6b665d;
+    --navy:#13314f; --gold:#b48a3e; --line:rgba(19,49,79,.14);
+    --ok:#2f6b4f; --bad:#c45c5c; --soft:#efe7d6;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:
+      radial-gradient(900px 420px at 10% -10%, rgba(180,138,62,.16), transparent 55%),
+      radial-gradient(700px 380px at 100% 0%, rgba(19,49,79,.08), transparent 50%),
+      var(--bg);
+    line-height:1.65;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:26px 18px 64px}
+  .brand{color:var(--gold); letter-spacing:.22em; font-size:.76rem; font-weight:700; margin:0 0 6px}
+  h1{margin:0 0 8px; color:var(--navy); font-size:1.55rem; font-family:"Nanum Myeongjo",Batang,serif}
+  .lead{margin:0 0 20px; color:var(--muted); font-size:.94rem}
+  .steps{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px}
+  .stepchip{
+    border:1px solid var(--line); background:#fff; color:var(--muted);
+    border-radius:999px; padding:6px 12px; font-size:.8rem; font-weight:700;
+  }
+  .stepchip.on{background:var(--navy); color:#fff; border-color:var(--navy)}
+  .stepchip.done{background:rgba(47,107,79,.12); color:var(--ok); border-color:rgba(47,107,79,.35)}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:18px; margin-bottom:14px;
+    box-shadow:0 8px 28px rgba(19,49,79,.05);
+  }
+  .panel h2{margin:0 0 6px; font-size:1.05rem; color:var(--navy)}
+  .sub{margin:0 0 12px; color:var(--muted); font-size:.88rem}
+  label.field{display:block; margin:0 0 6px; font-size:.88rem; font-weight:700; color:var(--navy)}
+  textarea, select, input[type=number], input[type=text]{
+    width:100%; border:1px solid var(--line); border-radius:10px;
+    background:#fff; color:var(--ink); font:inherit; padding:11px 12px;
+  }
+  textarea{resize:vertical; line-height:1.55}
+  textarea:focus, select:focus, input:focus{outline:none; border-color:var(--gold)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media (max-width:700px){ .grid2{grid-template-columns:1fr} }
+  .opts{display:flex; flex-wrap:wrap; gap:12px 16px; margin:12px 0 0; align-items:end}
+  .opts .box{min-width:140px}
+  .opts label.field{margin-bottom:4px}
+  .btns{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  button{
+    border:0; border-radius:10px; padding:11px 16px; font:inherit; font-weight:700;
+    cursor:pointer; background:var(--navy); color:#fff;
+  }
+  button:hover{filter:brightness(1.06)}
+  button:disabled{opacity:.45; cursor:default; filter:none}
+  button.ghost{background:#fff; color:var(--navy); border:1px solid var(--line)}
+  button.stop{background:var(--bad)}
+  button.gold{background:var(--gold); color:#1a1408}
+  .status{
+    margin-top:12px; padding:10px 12px; border-radius:10px; background:var(--soft);
+    color:var(--muted); font-size:.9rem; min-height:1.4em; white-space:pre-wrap;
+  }
+  .status.run{color:var(--navy); font-weight:600}
+  .status.err{color:var(--bad); background:#fcecec}
+  .status.ok{color:var(--ok)}
+  .outbox{
+    margin-top:12px; border:1px solid var(--line); border-radius:12px; background:#fff;
+    padding:12px 14px; max-height:360px; overflow:auto; white-space:pre-wrap;
+    font-size:.92rem; display:none;
+  }
+  .outbox.on{display:block}
+  .list{display:flex; flex-direction:column; gap:8px}
+  .item{
+    border:1px solid var(--line); border-radius:12px; background:#fff;
+    padding:12px 14px; display:grid; grid-template-columns:1fr auto; gap:8px 12px;
+  }
+  .item .t{font-weight:700; color:var(--navy)}
+  .item .m{font-size:.84rem; color:var(--muted)}
+  .item .actions{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+  .item button{padding:7px 11px; font-size:.85rem}
+  .item.done{border-color:rgba(47,107,79,.35)}
+  .item.run{border-color:rgba(180,138,62,.55); background:#fffaf0}
+  .item.err{border-color:rgba(196,92,92,.45)}
+  .preview{
+    grid-column:1/-1; margin:0; max-height:180px; overflow:auto;
+    white-space:pre-wrap; font-size:.86rem; color:#3f3a33;
+    background:#faf6ec; border-radius:8px; padding:10px 12px; display:none;
+  }
+  .item.open .preview{display:block}
+  .hint{font-size:.84rem; color:var(--muted); margin:8px 0 0}
+  .foot{margin-top:16px; font-size:.82rem; color:var(--muted)}
+  .foot a{color:var(--navy); font-weight:600; text-decoration:none}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="brand">VISIONFORLIFE</p>
+    <h1>책 작성 도구</h1>
+    <p class="lead">전체 기획을 유지한 채 목차를 만들고, 검수 후 장별 본문을 순차 작성·파일 저장한 뒤, VisionforLife 카탈로그에 올릴 수 있습니다. (로컬 AI · search.db)</p>
+
+    <div class="steps" id="stepChips">
+      <span class="stepchip on" data-step="1">1 기획·목차</span>
+      <span class="stepchip" data-step="2">2 목차 확정</span>
+      <span class="stepchip" data-step="3">3 본문 작성</span>
+      <span class="stepchip" data-step="4">4 앱에 올리기</span>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="panel" id="panel1">
+      <h2>1. 책 기획 · 목차 받기</h2>
+      <p class="sub">책의 목적·독자·제목을 넣고, 목차 요청을 보냅니다. 이 기획 문단은 이후 모든 장 작성에 계속 들어갑니다.</p>
+
+      <label class="field" for="premise">책 전체 기획 (맥락)</label>
+      <textarea id="premise" rows="8" placeholder="예: 믿지 않는 사람·초신자가 창조의 목적과 과정을 이해하도록… 제목은 「천지창조」…"></textarea>
+
+      <label class="field" for="tocAsk" style="margin-top:12px">목차 요청</label>
+      <textarea id="tocAsk" rows="4">1. 목차를 10개로 만들어 주세요.
+2. 각 목차에 맞는 주제(한두 문장)를 붙여 주세요.
+형식은 반드시 아래처럼 번호 목록으로만 출력해 주세요.
+1. 장 제목 — 주제 설명
+2. …</textarea>
+
+      <div class="opts">
+        <div class="box">
+          <label class="field" for="mode">모드</label>
+          <select id="mode">
+            <option value="rag" selected>RAG (search.db + 로컬 AI)</option>
+            <option value="model">로컬 AI만</option>
+          </select>
+        </div>
+        <div class="box">
+          <label class="field" for="tocCount">목차 개수</label>
+          <input id="tocCount" type="number" min="3" max="30" value="10">
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="btnTocAsk" class="gold" type="button">목차 질문하기</button>
+        <button id="btnTocRetry" class="ghost" type="button" disabled title="질문을 수정한 뒤 다시 물어봅니다">다시 질문하기</button>
+        <button id="btnTocStop" class="stop" type="button" disabled>중지</button>
+        <button id="btnUseToc" class="ghost" type="button" disabled>이 답을 목차로 넣기 →</button>
+      </div>
+      <p class="hint">답이 마음에 안 들면 위 <b>목차 요청</b>(또는 기획)을 고친 뒤 <b>다시 질문하기</b>를 누르면 됩니다. 이전 초안은 아래에 남겨 둡니다.</p>
+      <div class="status" id="status1">대기 중</div>
+      <div class="outbox" id="tocAnswer"></div>
+      <details id="tocPrevWrap" class="hidden" style="margin-top:10px">
+        <summary style="cursor:pointer;color:var(--navy);font-weight:700;font-size:.9rem">이전 목차 초안 보기</summary>
+        <div class="outbox on" id="tocPrev" style="margin-top:8px;max-height:220px"></div>
+      </details>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="panel" id="panel2">
+      <h2>2. 목차 확정</h2>
+      <p class="sub">AI 답을 수정·정리한 뒤 붙여 넣으세요. 한 줄에 한 장: <code>1. 제목 — 주제</code></p>
+      <label class="field" for="tocFinal">확정 목차</label>
+      <textarea id="tocFinal" rows="12" placeholder="1. …&#10;2. …"></textarea>
+      <p class="hint" id="tocParseHint">파싱 대기</p>
+      <div class="btns">
+        <button id="btnToStep3" class="gold" type="button">본문 작성으로 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="panel" id="panel3">
+      <h2>3. 장별 본문 작성 · 저장</h2>
+      <p class="sub">매 장마다 <b>전체 기획 + 전체 목차 + 이전 장 요약</b>을 넣고 순차 질문합니다. 완료된 장은 파일로 저장됩니다.</p>
+
+      <div class="grid2">
+        <div>
+          <label class="field" for="minutes">읽는 분량 (분)</label>
+          <input id="minutes" type="number" min="1" max="120" value="10">
+        </div>
+        <div>
+          <label class="field" for="chars">목표 글자 수 (공백 포함, 대략)</label>
+          <input id="chars" type="number" min="500" max="20000" value="2500" step="100">
+        </div>
+      </div>
+      <label class="field" for="bodyExtra" style="margin-top:12px">추가 지시 (선택)</label>
+      <textarea id="bodyExtra" rows="3" placeholder="예: 쉬운 말로, 초신자 눈높이, 적용 질문 2개 포함…"></textarea>
+
+      <div class="opts">
+        <div class="box">
+          <label class="field" for="startFrom">시작 번호</label>
+          <select id="startFrom"></select>
+        </div>
+        <div class="box">
+          <label class="field" for="autoDl">저장 방식</label>
+          <select id="autoDl">
+            <option value="each" selected>장 끝날 때마다 다운로드</option>
+            <option value="manual">목록에서 수동 다운로드</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="btnBodyStart" class="gold" type="button">본문 작성 시작</button>
+        <button id="btnBodyStop" class="stop" type="button" disabled>중지</button>
+        <button id="btnAll" class="ghost" type="button" disabled>전체 다운로드</button>
+        <button id="btnFolder" class="ghost" type="button" disabled>폴더에 저장…</button>
+        <button id="btnToStep4" class="gold" type="button" disabled>앱에 올리기로 →</button>
+      </div>
+      <div class="status" id="status3">목차를 확정한 뒤 시작하세요.</div>
+      <div class="list" id="list" style="margin-top:12px"></div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="panel" id="panel4">
+      <h2>4. 앱에 올리기</h2>
+      <p class="sub">완료된 장을 VisionforLife 카탈로그·과정으로 반영합니다. 기본은 <b>비공개</b>입니다. 기존 과정 slug면 mindmap을 <b>통째로 덮어씁니다</b>.</p>
+
+      <label class="field" for="adminPin">관리자 PIN</label>
+      <input id="adminPin" type="password" autocomplete="off" placeholder="앱 관리자 PIN">
+
+      <div class="opts" style="margin-top:14px">
+        <div class="box" style="min-width:200px">
+          <label class="field" for="catMode">카탈로그</label>
+          <select id="catMode">
+            <option value="new" selected>새 카탈로그</option>
+            <option value="existing">기존 카탈로그</option>
+          </select>
+        </div>
+        <div class="box hidden" style="flex:1;min-width:220px" id="catExistingWrap">
+          <label class="field" for="catExisting">기존 목록</label>
+          <select id="catExisting"><option value="">불러오는 중…</option></select>
+        </div>
+      </div>
+
+      <div id="catNewFields" class="grid2" style="margin-top:12px">
+        <div>
+          <label class="field" for="catSlug">카탈로그 slug (영문)</label>
+          <input id="catSlug" type="text" placeholder="예: genesis" spellcheck="false">
+        </div>
+        <div>
+          <label class="field" for="catTitle">카탈로그 제목</label>
+          <input id="catTitle" type="text" placeholder="예: 천지창조">
+        </div>
+      </div>
+      <label class="field" for="catDesc" style="margin-top:12px">카탈로그 설명</label>
+      <textarea id="catDesc" rows="2" placeholder="짧은 소개"></textarea>
+
+      <h2 style="margin-top:20px;font-size:1.05rem;color:var(--navy)">과정</h2>
+      <div class="grid2" style="margin-top:8px">
+        <div>
+          <label class="field" for="courseSlug">과정 slug (영문·숫자)</label>
+          <input id="courseSlug" type="text" placeholder="예: 1 또는 cheonji" spellcheck="false">
+        </div>
+        <div>
+          <label class="field" for="courseTitle">과정 제목</label>
+          <input id="courseTitle" type="text" placeholder="예: 천지창조">
+        </div>
+      </div>
+      <label class="field" for="courseSubtitle" style="margin-top:12px">부제 (선택)</label>
+      <input id="courseSubtitle" type="text" placeholder="한 줄 부제">
+      <label class="field" for="courseDesc" style="margin-top:12px">과정 설명</label>
+      <textarea id="courseDesc" rows="3" placeholder="기획 문단에서 자동으로 채울 수 있습니다"></textarea>
+
+      <p class="hint" id="publishHint">완료된 장: 0개</p>
+      <div class="btns">
+        <button id="btnPublish" class="gold" type="button">카탈로그에 반영</button>
+        <button id="btnReloadCats" class="ghost" type="button">카탈로그 목록 새로고침</button>
+      </div>
+      <div class="status" id="status4">본문 작성을 마친 뒤 여기서 앱에 올립니다.</div>
+      <p class="hint" id="publishLinks" hidden></p>
+    </div>
+
+    <p class="foot"><a href="./">VisionforLife</a> · <code>http://localhost:8780/book-writer.html</code></p>
+  </div>
+
+<script>
+(function () {
+  var API = location.origin + '/api/ai/ask';
+  var HEALTH = location.origin + '/api/health';
+  var API_CATALOGS = location.origin + '/api/catalogs';
+  var API_COURSES = location.origin + '/api/courses';
+  var API_MINDMAP = location.origin + '/api/mindmap';
+  var LS = {
+    premise: 'vfl_book2_premise',
+    tocAsk: 'vfl_book2_tocAsk',
+    tocFinal: 'vfl_book2_tocFinal',
+    mode: 'vfl_book2_mode',
+    minutes: 'vfl_book2_minutes',
+    chars: 'vfl_book2_chars',
+    bodyExtra: 'vfl_book2_bodyExtra',
+    adminPin: 'vfl_book2_adminPin',
+    catMode: 'vfl_book2_catMode',
+    catSlug: 'vfl_book2_catSlug',
+    catTitle: 'vfl_book2_catTitle',
+    catDesc: 'vfl_book2_catDesc',
+    courseSlug: 'vfl_book2_courseSlug',
+    courseTitle: 'vfl_book2_courseTitle',
+    courseSubtitle: 'vfl_book2_courseSubtitle'
+  };
+
+  var premiseEl = document.getElementById('premise');
+  var tocAskEl = document.getElementById('tocAsk');
+  var tocFinalEl = document.getElementById('tocFinal');
+  var tocAnswerEl = document.getElementById('tocAnswer');
+  var tocCountEl = document.getElementById('tocCount');
+  var modeEl = document.getElementById('mode');
+  var minutesEl = document.getElementById('minutes');
+  var charsEl = document.getElementById('chars');
+  var bodyExtraEl = document.getElementById('bodyExtra');
+  var startEl = document.getElementById('startFrom');
+  var autoDlEl = document.getElementById('autoDl');
+  var listEl = document.getElementById('list');
+  var status1 = document.getElementById('status1');
+  var status3 = document.getElementById('status3');
+  var status4 = document.getElementById('status4');
+  var tocParseHint = document.getElementById('tocParseHint');
+
+  var btnTocAsk = document.getElementById('btnTocAsk');
+  var btnTocRetry = document.getElementById('btnTocRetry');
+  var btnTocStop = document.getElementById('btnTocStop');
+  var btnUseToc = document.getElementById('btnUseToc');
+  var tocPrevWrap = document.getElementById('tocPrevWrap');
+  var tocPrevEl = document.getElementById('tocPrev');
+  var tocAskCount = 0;
+  var btnToStep3 = document.getElementById('btnToStep3');
+  var btnBodyStart = document.getElementById('btnBodyStart');
+  var btnBodyStop = document.getElementById('btnBodyStop');
+  var btnAll = document.getElementById('btnAll');
+  var btnFolder = document.getElementById('btnFolder');
+  var btnToStep4 = document.getElementById('btnToStep4');
+  var btnPublish = document.getElementById('btnPublish');
+  var btnReloadCats = document.getElementById('btnReloadCats');
+
+  var adminPinEl = document.getElementById('adminPin');
+  var catModeEl = document.getElementById('catMode');
+  var catExistingEl = document.getElementById('catExisting');
+  var catNewFields = document.getElementById('catNewFields');
+  var catExistingWrap = document.getElementById('catExistingWrap');
+  var catSlugEl = document.getElementById('catSlug');
+  var catTitleEl = document.getElementById('catTitle');
+  var catDescEl = document.getElementById('catDesc');
+  var courseSlugEl = document.getElementById('courseSlug');
+  var courseTitleEl = document.getElementById('courseTitle');
+  var courseSubtitleEl = document.getElementById('courseSubtitle');
+  var courseDescEl = document.getElementById('courseDesc');
+  var publishHint = document.getElementById('publishHint');
+  var publishLinks = document.getElementById('publishLinks');
+
+  var chapters = [];
+  var answers = {};
+  var lastTocRaw = '';
+  var running = false;
+  var publishing = false;
+  var abortCtrl = null;
+  var SUMMARY = 800;
+  var catalogList = [];
+  var SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+  /* restore */
+  try {
+    if (localStorage.getItem(LS.premise)) premiseEl.value = localStorage.getItem(LS.premise);
+    else premiseEl.value =
+      '사람들이 하나님에 대한 이해가 부족하고 사람의 존재에 대한 이해가 부족하여 하나님을 믿지 않고, ' +
+      '인생의 목표도 잘 모르고 세상의 흐름을 따라 떠돌아 다니듯 살아갑니다. ' +
+      '믿지 않는 사람이나 초신자가 하나님의 창조의 목적과 과정을 이해하면 ' +
+      '하나님은 어떤 분인지, 사람은 어떤 존재인지에 대한 조망이 생길 거라 봅니다. ' +
+      '그런 목표를 위해 「천지창조」라는 제목으로 책자를 준비 중입니다.';
+    if (localStorage.getItem(LS.tocAsk)) tocAskEl.value = localStorage.getItem(LS.tocAsk);
+    if (localStorage.getItem(LS.tocFinal)) tocFinalEl.value = localStorage.getItem(LS.tocFinal);
+    if (localStorage.getItem(LS.bodyExtra)) bodyExtraEl.value = localStorage.getItem(LS.bodyExtra);
+    var sm = localStorage.getItem(LS.mode); if (sm === 'rag' || sm === 'model') modeEl.value = sm;
+    var mi = localStorage.getItem(LS.minutes); if (mi) minutesEl.value = mi;
+    var ch = localStorage.getItem(LS.chars); if (ch) charsEl.value = ch;
+    if (localStorage.getItem(LS.adminPin)) adminPinEl.value = localStorage.getItem(LS.adminPin);
+    var cm = localStorage.getItem(LS.catMode); if (cm === 'new' || cm === 'existing') catModeEl.value = cm;
+    if (localStorage.getItem(LS.catSlug)) catSlugEl.value = localStorage.getItem(LS.catSlug);
+    if (localStorage.getItem(LS.catTitle)) catTitleEl.value = localStorage.getItem(LS.catTitle);
+    if (localStorage.getItem(LS.catDesc)) catDescEl.value = localStorage.getItem(LS.catDesc);
+    if (localStorage.getItem(LS.courseSlug)) courseSlugEl.value = localStorage.getItem(LS.courseSlug);
+    if (localStorage.getItem(LS.courseTitle)) courseTitleEl.value = localStorage.getItem(LS.courseTitle);
+    if (localStorage.getItem(LS.courseSubtitle)) courseSubtitleEl.value = localStorage.getItem(LS.courseSubtitle);
+  } catch (e) {}
+
+  function persist() {
+    try {
+      localStorage.setItem(LS.premise, premiseEl.value);
+      localStorage.setItem(LS.tocAsk, tocAskEl.value);
+      localStorage.setItem(LS.tocFinal, tocFinalEl.value);
+      localStorage.setItem(LS.mode, modeEl.value);
+      localStorage.setItem(LS.minutes, minutesEl.value);
+      localStorage.setItem(LS.chars, charsEl.value);
+      localStorage.setItem(LS.bodyExtra, bodyExtraEl.value);
+      localStorage.setItem(LS.adminPin, adminPinEl.value);
+      localStorage.setItem(LS.catMode, catModeEl.value);
+      localStorage.setItem(LS.catSlug, catSlugEl.value);
+      localStorage.setItem(LS.catTitle, catTitleEl.value);
+      localStorage.setItem(LS.catDesc, catDescEl.value);
+      localStorage.setItem(LS.courseSlug, courseSlugEl.value);
+      localStorage.setItem(LS.courseTitle, courseTitleEl.value);
+      localStorage.setItem(LS.courseSubtitle, courseSubtitleEl.value);
+    } catch (e) {}
+  }
+  [premiseEl, tocAskEl, tocFinalEl, bodyExtraEl, modeEl, minutesEl, charsEl,
+    adminPinEl, catModeEl, catSlugEl, catTitleEl, catDescEl,
+    courseSlugEl, courseTitleEl, courseSubtitleEl, courseDescEl].forEach(function (el) {
+    el.addEventListener('input', persist);
+    el.addEventListener('change', persist);
+  });
+
+  function setStatus(el, msg, cls) {
+    el.textContent = msg;
+    el.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function setStep(n) {
+    document.querySelectorAll('.stepchip').forEach(function (c) {
+      var s = parseInt(c.getAttribute('data-step'), 10);
+      c.classList.toggle('on', s === n);
+      c.classList.toggle('done', s < n);
+    });
+  }
+
+  function parseToc(text) {
+    var items = [];
+    String(text || '').split(/\r?\n/).forEach(function (line) {
+      var raw = line.trim();
+      if (!raw || raw.charAt(0) === '#') return;
+      /* strip markdown bullets */
+      raw = raw.replace(/^[-*•]\s+/, '');
+      var m = raw.match(/^\s*(\d+)\s*[\.\)、:：\-–—]\s*(.+)$/) || raw.match(/^\s*(\d+)\s+(.+)$/);
+      if (m) items.push({ num: parseInt(m[1], 10), title: m[2].trim() });
+    });
+    items.sort(function (a, b) { return a.num - b.num; });
+    return items;
+  }
+
+  function refreshStartOptions() {
+    var items = parseToc(tocFinalEl.value);
+    var cur = startEl.value;
+    startEl.innerHTML = '';
+    if (!items.length) {
+      startEl.innerHTML = '<option value="1">1</option>';
+      tocParseHint.textContent = '번호 목차가 없습니다. 예: 1. 제목 — 주제';
+      return items;
+    }
+    items.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = String(c.num);
+      o.textContent = c.num + '. ' + c.title;
+      startEl.appendChild(o);
+    });
+    if (cur && [].some.call(startEl.options, function (o) { return o.value === cur; })) startEl.value = cur;
+    tocParseHint.textContent = items.length + '개 장으로 인식됨';
+    return items;
+  }
+
+  tocFinalEl.addEventListener('input', function () {
+    persist();
+    refreshStartOptions();
+  });
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function safeName(s) {
+    var t = (s || '').replace(/[\\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim();
+    if (t.length > 60) t = t.slice(0, 60).trim();
+    return t || 'chapter';
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fileName(ch) { return pad(ch.num) + '_' + safeName(ch.title) + '.txt'; }
+  function fileBody(ch, answer) {
+    var book = (premiseEl.value.trim().split('\n')[0] || '책').slice(0, 80);
+    return '# ' + ch.num + '. ' + ch.title +
+      '\n# book: ' + book +
+      '\n# generated ' + new Date().toISOString() +
+      '\n\n' + String(answer || '').trim() + '\n';
+  }
+  function summary(text) {
+    var t = String(text || '').replace(/\r\n/g, '\n').trim();
+    if (t.length <= SUMMARY) return t;
+    return t.slice(0, SUMMARY).trim() + '\n…(요약 생략)';
+  }
+  function downloadText(name, text) {
+    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  }
+
+  async function ensureServer() {
+    var h = await fetch(HEALTH).then(function (r) { return r.json(); });
+    if (!h) throw new Error('health fail');
+    return h;
+  }
+
+  async function ask(question, context) {
+    abortCtrl = new AbortController();
+    var res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: question,
+        context: context || '',
+        mode: modeEl.value
+      }),
+      signal: abortCtrl.signal
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    return String(data.answer || '');
+  }
+
+  function setTocAskingUi(on) {
+    btnTocAsk.disabled = on;
+    btnTocRetry.disabled = on || !lastTocRaw;
+    btnTocStop.disabled = !on;
+    if (on) btnUseToc.disabled = true;
+  }
+
+  /* ----- Step 1: TOC ask (여러 번 재질문 가능) ----- */
+  async function askTocDraft() {
+    if (running) return;
+    var premise = premiseEl.value.trim();
+    if (!premise) {
+      setStatus(status1, '책 전체 기획을 먼저 입력해 주세요.', 'err');
+      return;
+    }
+    if (!tocAskEl.value.trim()) {
+      setStatus(status1, '목차 요청 내용을 입력해 주세요.', 'err');
+      return;
+    }
+    persist();
+
+    /* 재질문: 현재 답을 이전 초안으로 보관 */
+    if (lastTocRaw && lastTocRaw.trim()) {
+      tocPrevEl.textContent = lastTocRaw;
+      tocPrevWrap.classList.remove('hidden');
+    }
+
+    running = true;
+    setTocAskingUi(true);
+    tocAnswerEl.classList.remove('on');
+    tocAnswerEl.textContent = '';
+    setStep(1);
+    tocAskCount += 1;
+    setStatus(status1, (tocAskCount > 1 ? '다시 질문 중… (' + tocAskCount + '회차)' : '목차 요청 중…'), 'run');
+    try {
+      await ensureServer();
+      var n = parseInt(tocCountEl.value, 10) || 10;
+      var q =
+        '【책 전체 기획】\n' + premise + '\n\n' +
+        '【요청】\n' + tocAskEl.value.trim() + '\n\n' +
+        '목차는 정확히 ' + n + '개로 잡아 주세요. 서론·본론·결론 흐름이 자연스럽게 이어지게 하세요.\n' +
+        '출력은 다른 설명 없이 번호 목록만 해 주세요. 각 줄 형식: N. 장 제목 — 주제 한두 문장';
+      if (tocAskCount > 1 && tocPrevEl.textContent.trim()) {
+        q +=
+          '\n\n【참고: 이전에 받은 목차 초안 — 마음에 안 들어 다시 요청합니다. 개선된 새 목차를 제시하세요】\n' +
+          tocPrevEl.textContent.trim();
+      }
+      var answer = await ask(q, '책 목차 기획');
+      lastTocRaw = answer;
+      tocAnswerEl.textContent = answer;
+      tocAnswerEl.classList.add('on');
+      btnUseToc.disabled = !answer.trim();
+      btnTocAsk.textContent = '목차 다시 질문하기';
+      btnTocRetry.disabled = false;
+      setStatus(
+        status1,
+        '목차 초안을 받았습니다. 마음에 들면 「이 답을 목차로 넣기」, 아니면 요청을 고친 뒤 「다시 질문하기」를 누르세요.',
+        'ok'
+      );
+    } catch (e) {
+      if (e && e.name === 'AbortError') setStatus(status1, '중지됨. 질문을 수정한 뒤 다시 질문할 수 있습니다.', 'ok');
+      else setStatus(status1, '오류: ' + (e.message || e) + ' — 수정 후 다시 질문하세요.', 'err');
+    } finally {
+      running = false;
+      abortCtrl = null;
+      btnTocAsk.disabled = false;
+      btnTocStop.disabled = true;
+      btnTocRetry.disabled = !lastTocRaw && !tocAnswerEl.textContent.trim();
+    }
+  }
+
+  btnTocAsk.onclick = function () { askTocDraft(); };
+  btnTocRetry.onclick = function () {
+    tocAskEl.focus();
+    askTocDraft();
+  };
+
+  btnTocStop.onclick = function () {
+    if (abortCtrl) abortCtrl.abort();
+    running = false;
+  };
+
+  btnUseToc.onclick = function () {
+    var raw = lastTocRaw || tocAnswerEl.textContent || '';
+    var parsed = parseToc(raw);
+    if (parsed.length) {
+      tocFinalEl.value = parsed.map(function (c) { return c.num + '. ' + c.title; }).join('\n');
+    } else {
+      tocFinalEl.value = raw.trim();
+    }
+    persist();
+    refreshStartOptions();
+    setStep(2);
+    tocFinalEl.focus();
+    setStatus(status1, '목차 칸에 넣었습니다. 필요하면 고친 뒤 「본문 작성으로」로 가세요.', 'ok');
+    document.getElementById('panel2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  btnToStep3.onclick = function () {
+    chapters = refreshStartOptions();
+    if (!chapters.length) {
+      setStatus(status3, '확정 목차가 비었거나 형식이 맞지 않습니다.', 'err');
+      return;
+    }
+    if (!premiseEl.value.trim()) {
+      setStatus(status3, '책 전체 기획이 비어 있습니다. 1단계로 돌아가 채워 주세요.', 'err');
+      return;
+    }
+    answers = {};
+    renderList();
+    setStep(3);
+    setStatus(status3, chapters.length + '개 장 준비됨. 분량을 정한 뒤 「본문 작성 시작」을 누르세요.', 'ok');
+    document.getElementById('panel3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  /* ----- Step 3: bodies ----- */
+  function renderList() {
+    listEl.innerHTML = '';
+    if (!chapters.length) {
+      listEl.innerHTML = '<p class="hint">확정 목차가 없습니다.</p>';
+      return;
+    }
+    chapters.forEach(function (ch) {
+      var st = answers[ch.num];
+      var div = document.createElement('div');
+      div.className = 'item';
+      if (st) {
+        if (st.status === 'done') div.classList.add('done');
+        if (st.status === 'run') div.classList.add('run');
+        if (st.status === 'err') div.classList.add('err');
+      }
+      var meta = '대기';
+      if (st) {
+        if (st.status === 'run') meta = '작성 중…';
+        else if (st.status === 'done') meta = (st.answer || '').length + '자 · 완료';
+        else if (st.status === 'err') meta = '오류: ' + (st.error || '');
+        else if (st.status === 'skip') meta = '건너뜀';
+      }
+      div.innerHTML =
+        '<div><div class="t">' + ch.num + '. ' + escapeHtml(ch.title) + '</div><div class="m">' + escapeHtml(meta) + '</div></div>' +
+        '<div class="actions"></div><pre class="preview"></pre>';
+      var actions = div.querySelector('.actions');
+      if (st && st.status === 'done' && st.answer) {
+        var b1 = document.createElement('button');
+        b1.type = 'button'; b1.className = 'ghost'; b1.textContent = '다운로드';
+        b1.onclick = function () { downloadText(fileName(ch), fileBody(ch, st.answer)); };
+        var b2 = document.createElement('button');
+        b2.type = 'button'; b2.className = 'ghost'; b2.textContent = '미리보기';
+        b2.onclick = function () { div.classList.toggle('open'); };
+        actions.appendChild(b1);
+        actions.appendChild(b2);
+        div.querySelector('.preview').textContent = st.answer;
+      }
+      listEl.appendChild(div);
+    });
+    var any = Object.keys(answers).some(function (k) { return answers[k].status === 'done'; });
+    btnAll.disabled = !any;
+    btnFolder.disabled = !any || !window.showDirectoryPicker;
+    btnToStep4.disabled = !any;
+    updatePublishHint();
+  }
+
+  function doneChapters() {
+    var out = [];
+    chapters.forEach(function (ch) {
+      var st = answers[ch.num];
+      if (st && st.status === 'done' && st.answer) out.push({ ch: ch, answer: st.answer });
+    });
+    return out;
+  }
+
+  function updatePublishHint() {
+    var n = doneChapters().length;
+    publishHint.textContent = '완료된 장: ' + n + '개' + (n ? ' · 반영 시 과정 mindmap을 덮어씁니다' : '');
+  }
+
+  function shortLessonTitle(full) {
+    var t = String(full || '').trim();
+    var parts = t.split(/\s*[—\-–]\s*/);
+    return (parts[0] || t).trim() || '과';
+  }
+
+  function lessonBody(answer) {
+    var lines = String(answer || '').replace(/\r\n/g, '\n').split('\n');
+    var i = 0;
+    while (i < lines.length) {
+      var s = lines[i].trim();
+      if (!s || s.charAt(0) === '#') { i++; continue; }
+      break;
+    }
+    return lines.slice(i).join('\n').trim() || String(answer || '').trim();
+  }
+
+  function slugify(title, fallback) {
+    var s = String(title || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]+/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 48);
+    if (s && SLUG_RE.test(s)) return s;
+    return fallback || ('book-' + Date.now().toString(36));
+  }
+
+  function syncCatModeUi() {
+    var isNew = catModeEl.value === 'new';
+    catNewFields.classList.toggle('hidden', !isNew);
+    catExistingWrap.classList.toggle('hidden', isNew);
+    var catDescLabel = catDescEl.previousElementSibling;
+    if (catDescLabel && catDescLabel.tagName === 'LABEL') {
+      catDescLabel.classList.toggle('hidden', !isNew);
+    }
+    catDescEl.classList.toggle('hidden', !isNew);
+  }
+
+  async function loadCatalogs() {
+    try {
+      var res = await fetch(API_CATALOGS, { credentials: 'same-origin' });
+      var data = await res.json().catch(function () { return {}; });
+      catalogList = (data && data.ok && data.catalogs) ? data.catalogs : [];
+      var cur = catExistingEl.value;
+      catExistingEl.innerHTML = '';
+      if (!catalogList.length) {
+        var o0 = document.createElement('option');
+        o0.value = '';
+        o0.textContent = '(카탈로그 없음)';
+        catExistingEl.appendChild(o0);
+      } else {
+        catalogList.forEach(function (c) {
+          var o = document.createElement('option');
+          o.value = c.slug;
+          o.textContent = (c.title || c.slug) + ' (' + c.slug + ')' +
+            (c.visibility === 'private' || c.published === false ? ' · 비공개' : '');
+          catExistingEl.appendChild(o);
+        });
+        if (cur && [].some.call(catExistingEl.options, function (o) { return o.value === cur; })) {
+          catExistingEl.value = cur;
+        }
+      }
+      return catalogList;
+    } catch (e) {
+      catExistingEl.innerHTML = '<option value="">목록 로드 실패</option>';
+      throw e;
+    }
+  }
+
+  function prefillPublishFields() {
+    var premise = premiseEl.value.trim();
+    if (!courseDescEl.value.trim() && premise) courseDescEl.value = premise.slice(0, 400);
+    if (!courseTitleEl.value.trim()) {
+      var m = premise.match(/「([^」]+)」/) || premise.match(/『([^』]+)』/);
+      courseTitleEl.value = m ? m[1] : (chapters[0] ? shortLessonTitle(chapters[0].title) : '새 과정');
+    }
+    if (!catTitleEl.value.trim() && courseTitleEl.value.trim()) catTitleEl.value = courseTitleEl.value.trim();
+    if (!catSlugEl.value.trim()) catSlugEl.value = slugify(catTitleEl.value, 'catalog-' + Date.now().toString(36));
+    if (!courseSlugEl.value.trim()) courseSlugEl.value = '1';
+    if (!catDescEl.value.trim() && premise) catDescEl.value = premise.split(/[.。]/)[0].trim().slice(0, 120);
+    updatePublishHint();
+    persist();
+  }
+
+  function goStep4() {
+    var done = doneChapters();
+    if (!done.length) {
+      setStatus(status3, '완료된 장이 없습니다. 본문을 먼저 작성하세요.', 'err');
+      return;
+    }
+    if (!chapters.length) chapters = refreshStartOptions();
+    prefillPublishFields();
+    syncCatModeUi();
+    setStep(4);
+    loadCatalogs().then(function () {
+      setStatus(status4, done.length + '개 장을 앱에 올릴 수 있습니다. PIN과 slug를 확인하세요.', 'ok');
+    }).catch(function (e) {
+      setStatus(status4, '카탈로그 목록 로드 실패: ' + (e.message || e) + ' — serve.bat 확인', 'err');
+    });
+    document.getElementById('panel4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function apiJson(url, method, body) {
+    var res = await fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body)
+    });
+    var data = await res.json().catch(function () { return {}; });
+    return { ok: res.ok && !!data.ok, status: res.status, data: data };
+  }
+
+  function buildMindmap(catalogSlug, courseSlug, courseTitle, courseSubtitle, done) {
+    var nodes = [{
+      id: 'root',
+      title: courseTitle,
+      description:
+        (courseDescEl.value.trim() || courseTitle) +
+        '\n\n아래에서 **제1과**부터 순서대로 공부하세요.',
+      scripture: '',
+      x: 0,
+      y: 0
+    }];
+    var edges = [];
+    var prev = null;
+    done.forEach(function (item) {
+      var num = item.ch.num;
+      var nid = 'lesson-' + pad(num);
+      var title = shortLessonTitle(item.ch.title);
+      nodes.push({
+        id: nid,
+        title: '제' + num + '과 ' + title,
+        description: lessonBody(item.answer),
+        scripture: '',
+        x: 0,
+        y: 0
+      });
+      edges.push({ id: 'e-root-' + nid, from: 'root', to: nid, type: 'hierarchy' });
+      if (prev) edges.push({ id: 'e-seq-' + prev + '-' + nid, from: prev, to: nid, type: 'cross' });
+      prev = nid;
+    });
+    return {
+      version: 2,
+      courseSlug: courseSlug,
+      catalogSlug: catalogSlug,
+      rootId: 'root',
+      meta: {
+        title: courseTitle,
+        subtitle: courseSubtitle || '',
+        catalogSlug: catalogSlug,
+        layout: 'linear',
+        updatedAt: new Date().toISOString()
+      },
+      nodes: nodes,
+      edges: edges
+    };
+  }
+
+  btnToStep4.onclick = function () { goStep4(); };
+  btnReloadCats.onclick = function () {
+    loadCatalogs().then(function () {
+      setStatus(status4, '카탈로그 목록을 새로고침했습니다. (' + catalogList.length + '개)', 'ok');
+    }).catch(function (e) {
+      setStatus(status4, '새로고침 실패: ' + (e.message || e), 'err');
+    });
+  };
+  catModeEl.addEventListener('change', function () {
+    syncCatModeUi();
+    persist();
+  });
+
+  btnPublish.onclick = async function () {
+    if (publishing || running) return;
+    var done = doneChapters();
+    if (!done.length) {
+      setStatus(status4, '완료된 장이 없습니다.', 'err');
+      return;
+    }
+    var pin = adminPinEl.value.trim();
+    if (!pin) {
+      setStatus(status4, '관리자 PIN을 입력하세요.', 'err');
+      adminPinEl.focus();
+      return;
+    }
+
+    var catalogSlug = '';
+    var catalogTitle = '';
+    var catalogDesc = catDescEl.value.trim();
+    var isNewCat = catModeEl.value === 'new';
+
+    if (isNewCat) {
+      catalogSlug = catSlugEl.value.trim().toLowerCase();
+      catalogTitle = catTitleEl.value.trim();
+      if (!catalogSlug || !SLUG_RE.test(catalogSlug)) {
+        setStatus(status4, '카탈로그 slug는 영문 소문자·숫자·하이픈만 가능합니다. 예: genesis', 'err');
+        return;
+      }
+      if (!catalogTitle) {
+        setStatus(status4, '카탈로그 제목을 입력하세요.', 'err');
+        return;
+      }
+    } else {
+      catalogSlug = catExistingEl.value.trim();
+      if (!catalogSlug) {
+        setStatus(status4, '기존 카탈로그를 선택하세요.', 'err');
+        return;
+      }
+      var found = catalogList.find(function (c) { return c.slug === catalogSlug; });
+      catalogTitle = found ? (found.title || catalogSlug) : catalogSlug;
+    }
+
+    var courseSlug = courseSlugEl.value.trim().toLowerCase();
+    var courseTitle = courseTitleEl.value.trim();
+    var courseSubtitle = courseSubtitleEl.value.trim();
+    var courseDesc = courseDescEl.value.trim();
+    if (!courseSlug || !SLUG_RE.test(courseSlug)) {
+      setStatus(status4, '과정 slug는 영문 소문자·숫자·하이픈만 가능합니다. 예: 1 또는 cheonji', 'err');
+      return;
+    }
+    if (!courseTitle) {
+      setStatus(status4, '과정 제목을 입력하세요.', 'err');
+      return;
+    }
+
+    if (!confirm(
+      '카탈로그「' + catalogTitle + '」(' + catalogSlug + ') / 과정「' + courseTitle + '」(' + courseSlug + ')에\n' +
+      done.length + '개 장을 반영합니다.\n기존 과정이면 mindmap을 통째로 덮어씁니다. 계속할까요?'
+    )) return;
+
+    persist();
+    publishing = true;
+    btnPublish.disabled = true;
+    publishLinks.hidden = true;
+    setStatus(status4, '반영 중…', 'run');
+
+    try {
+      await ensureServer();
+
+      if (isNewCat) {
+        var created = await apiJson(API_CATALOGS, 'POST', {
+          pin: pin,
+          slug: catalogSlug,
+          title: catalogTitle,
+          description: catalogDesc,
+          visibility: 'private',
+          published: false
+        });
+        if (!created.ok) {
+          var err = (created.data && created.data.error) || ('HTTP ' + created.status);
+          if (/unavailable|already|exist|중복/i.test(String(err))) {
+            setStatus(status4, '카탈로그가 이미 있어 기존 것을 사용합니다…', 'run');
+          } else {
+            throw new Error('카탈로그 생성 실패: ' + err);
+          }
+        }
+      }
+
+      var coursePayload = {
+        pin: pin,
+        catalogSlug: catalogSlug,
+        slug: courseSlug,
+        title: courseTitle,
+        subtitle: courseSubtitle,
+        description: courseDesc
+      };
+      var courseRes = await apiJson(API_COURSES, 'POST', coursePayload);
+      if (!courseRes.ok) {
+        var cerr = (courseRes.data && courseRes.data.error) || '';
+        if (/unavailable|already|exist|중복/i.test(String(cerr))) {
+          courseRes = await apiJson(API_COURSES, 'PATCH', coursePayload);
+        }
+        if (!courseRes.ok) {
+          throw new Error('과정 생성/수정 실패: ' + ((courseRes.data && courseRes.data.error) || courseRes.status));
+        }
+      }
+
+      var mindmap = buildMindmap(catalogSlug, courseSlug, courseTitle, courseSubtitle, done);
+      mindmap.pin = pin;
+      var mmRes = await apiJson(API_MINDMAP, 'POST', mindmap);
+      if (!mmRes.ok) {
+        throw new Error('mindmap 저장 실패: ' + ((mmRes.data && mmRes.data.error) || mmRes.status));
+      }
+
+      setStatus(status4, '완료. ' + done.length + '개 과가 반영되었습니다.', 'ok');
+      publishLinks.hidden = false;
+      publishLinks.innerHTML =
+        '열기: <a href="./#catalog/' + encodeURIComponent(catalogSlug) + '">카탈로그</a> · ' +
+        '<a href="./#course/' + encodeURIComponent(courseSlug) + '">과정</a>';
+      await loadCatalogs();
+    } catch (e) {
+      setStatus(status4, '오류: ' + (e.message || e), 'err');
+    } finally {
+      publishing = false;
+      btnPublish.disabled = false;
+    }
+  };
+
+  function buildBodyPrompt(ch, tocBlock, prevNotes) {
+    var minutes = parseInt(minutesEl.value, 10) || 10;
+    var chars = parseInt(charsEl.value, 10) || 2500;
+    var extra = bodyExtraEl.value.trim();
+    var prevBlock = prevNotes.length
+      ? '【이미 작성한 장 요약 — 톤·용어·논지를 이어서 유지】\n' + prevNotes.map(function (p) { return '----\n' + p; }).join('\n')
+      : '【이미 작성한 장】 없음 (첫 장)';
+    return (
+      '당신은 한 권의 책을 집필 중입니다.\n\n' +
+      '【책 전체 기획·맥락】\n' + premiseEl.value.trim() + '\n\n' +
+      '【전체 목차】\n' + tocBlock + '\n\n' +
+      prevBlock + '\n\n' +
+      '【지금 쓸 장】\n' + ch.num + '. ' + ch.title + '\n\n' +
+      '【분량】\n' +
+      '- 소리 내어 읽으면 약 ' + minutes + '분 분량\n' +
+      '- 목표 글자 수(공백 포함) 약 ' + chars + '자 (너무 짧지 않게)\n\n' +
+      (extra ? ('【추가 지시】\n' + extra + '\n\n') : '') +
+      '요청:\n' +
+      '- 지금 장(' + ch.num + '번)의 본문만 작성하세요.\n' +
+      '- 책 전체 기획과 목차 흐름 안에서, 앞 장과 톤·용어가 맞게 쓰세요.\n' +
+      '- 다른 장 전체를 다시 쓰지 마세요.\n' +
+      '- 서두에 "답변:", "알겠습니다" 같은 메타 문구 없이 본문만 출력하세요.\n' +
+      '- 소제목이 필요하면 마크다운 ## 를 써도 됩니다.'
+    );
+  }
+
+  btnBodyStart.onclick = async function () {
+    if (running) return;
+    chapters = refreshStartOptions();
+    if (!chapters.length) {
+      setStatus(status3, '확정 목차가 없습니다.', 'err');
+      return;
+    }
+    if (!premiseEl.value.trim()) {
+      setStatus(status3, '책 전체 기획이 비어 있습니다.', 'err');
+      return;
+    }
+    persist();
+    running = true;
+    btnBodyStart.disabled = true;
+    btnBodyStop.disabled = false;
+    btnTocAsk.disabled = true;
+    setStep(3);
+
+    var startFrom = parseInt(startEl.value, 10) || chapters[0].num;
+    answers = {};
+    chapters.forEach(function (c) {
+      answers[c.num] = { status: c.num < startFrom ? 'skip' : 'wait' };
+    });
+    renderList();
+
+    var tocBlock = chapters.map(function (c) { return c.num + '. ' + c.title; }).join('\n');
+    var prevNotes = [];
+    /* seed summaries from already-done files in this session if restarting mid-way — N/A first run */
+
+    try {
+      await ensureServer();
+      for (var i = 0; i < chapters.length; i++) {
+        if (!running) break;
+        var ch = chapters[i];
+        if (ch.num < startFrom) continue;
+
+        answers[ch.num] = { status: 'run' };
+        renderList();
+        setStatus(status3, '작성 중: ' + ch.num + '. ' + ch.title, 'run');
+
+        var answer = await ask(buildBodyPrompt(ch, tocBlock, prevNotes), '책 본문 · ' + ch.num + '. ' + ch.title);
+        if (!answer.trim()) throw new Error('빈 답변 (' + ch.num + ')');
+
+        answers[ch.num] = { status: 'done', answer: answer };
+        prevNotes.push(ch.num + '. ' + ch.title + '\n' + summary(answer));
+        renderList();
+        if (autoDlEl.value === 'each') downloadText(fileName(ch), fileBody(ch, answer));
+      }
+      if (running) setStatus(status3, '완료. 아래에서 미리보기·다시 다운로드할 수 있습니다.', 'ok');
+      else setStatus(status3, '중지됨. 완료된 장만 저장할 수 있습니다.', 'ok');
+    } catch (e) {
+      if (e && e.name === 'AbortError') setStatus(status3, '중지됨.', 'ok');
+      else {
+        setStatus(status3, '오류: ' + (e.message || e), 'err');
+        var cur = chapters.find(function (c) { return answers[c.num] && answers[c.num].status === 'run'; });
+        if (cur) {
+          answers[cur.num] = { status: 'err', error: e.message || String(e) };
+          renderList();
+        }
+      }
+    } finally {
+      running = false;
+      abortCtrl = null;
+      btnBodyStart.disabled = false;
+      btnBodyStop.disabled = true;
+      btnTocAsk.disabled = false;
+    }
+  };
+
+  btnBodyStop.onclick = function () {
+    running = false;
+    if (abortCtrl) abortCtrl.abort();
+    btnBodyStop.disabled = true;
+  };
+
+  btnAll.onclick = function () {
+    chapters.forEach(function (ch) {
+      var st = answers[ch.num];
+      if (st && st.status === 'done' && st.answer) downloadText(fileName(ch), fileBody(ch, st.answer));
+    });
+  };
+
+  btnFolder.onclick = async function () {
+    if (!window.showDirectoryPicker) {
+      setStatus(status3, '이 브라우저는 폴더 저장을 지원하지 않습니다.', 'err');
+      return;
+    }
+    try {
+      var dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+      var n = 0;
+      for (var i = 0; i < chapters.length; i++) {
+        var ch = chapters[i];
+        var st = answers[ch.num];
+        if (!(st && st.status === 'done' && st.answer)) continue;
+        var fh = await dir.getFileHandle(fileName(ch), { create: true });
+        var w = await fh.createWritable();
+        await w.write(fileBody(ch, st.answer));
+        await w.close();
+        n++;
+      }
+      setStatus(status3, '폴더에 ' + n + '개 파일을 저장했습니다.', 'ok');
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      setStatus(status3, '폴더 저장 실패: ' + (e.message || e), 'err');
+    }
+  };
+
+  /* minutes ↔ rough chars hint: ~250 Korean chars/min reading aloud is rough; keep independent editable */
+  minutesEl.addEventListener('change', function () {
+    var m = parseInt(minutesEl.value, 10) || 10;
+    if (!charsEl.dataset.touched) charsEl.value = String(Math.round(m * 250));
+    persist();
+  });
+  charsEl.addEventListener('input', function () { charsEl.dataset.touched = '1'; });
+
+  refreshStartOptions();
+  renderList();
+  syncCatModeUi();
+  setStatus(status1, '서버: ' + location.origin + ' · serve.bat 실행 후 사용');
+  loadCatalogs().catch(function () {});
+})();
+</script>
+</body>
+</html>

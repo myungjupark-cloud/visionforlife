@@ -19,7 +19,7 @@
     },
     {
       "slug": "the-mystery-of-human-life",
-      "title": "THE MYSTERY OF HUMAN LIFE",
+      "title": "The Mystery of Human Life",
       "description": "The divine mystery of human life is revealed through God’s eternal plan.",
       "order": 3,
       "visibility": "public",
@@ -36,10 +36,10 @@
     {
       "slug": "genesis",
       "title": "천지창조",
-      "description": "창조의 목적과 과정을 이해하면 하나님과 인류에 대해 많은 것을 알 수 있습니다.",
+      "description": "창조의 목적을 이해하면 하나님과 사람에 대해 깊은 이해가 생깁니디.",
       "order": 5,
-      "visibility": "private",
-      "published": false
+      "visibility": "public",
+      "published": true
     },
     {
       "slug": "human",
