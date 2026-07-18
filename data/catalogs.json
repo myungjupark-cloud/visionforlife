@@ -48,6 +48,46 @@
       "order": 6,
       "visibility": "private",
       "published": false
+    },
+    {
+      "slug": "g2",
+      "title": "창조의 정점, 사람",
+      "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
+      "order": 7,
+      "visibility": "public",
+      "published": true
+    },
+    {
+      "slug": "g3",
+      "title": "창조와 사람",
+      "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
+      "order": 8,
+      "visibility": "private",
+      "published": false
+    },
+    {
+      "slug": "g4",
+      "title": "창조과정",
+      "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
+      "order": 9,
+      "visibility": "public",
+      "published": true
+    },
+    {
+      "slug": "g5",
+      "title": "창조의 과정 이해",
+      "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
+      "order": 10,
+      "visibility": "private",
+      "published": false
+    },
+    {
+      "slug": "g6",
+      "title": "창조의 과정 이해2",
+      "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
+      "order": 11,
+      "visibility": "private",
+      "published": false
     }
   ]
 }

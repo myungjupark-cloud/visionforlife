@@ -1,10 +1,10 @@
 {
-  "id": "kr.thegospel.visionforlife",
-  "name": "VisionforLife",
-  "short_name": "VisionforLife",
+  "id": "kr.thegospel.truthlib",
+  "name": "진리서재",
+  "short_name": "진리서재",
   "description": "작은 공부가 모여 만드는 성장 여행 — 여정형 학습 앱",
-  "start_url": "/visionforlife/?source=pwa",
-  "scope": "/visionforlife/",
+  "start_url": "/truthlib/?source=pwa",
+  "scope": "/truthlib/",
   "display": "standalone",
   "background_color": "#0a1628",
   "theme_color": "#0a1628",
@@ -13,19 +13,19 @@
   "categories": ["education", "books"],
   "icons": [
     {
-      "src": "/visionforlife/icon-192.png",
+      "src": "/truthlib/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/visionforlife/icon-512.png",
+      "src": "/truthlib/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/visionforlife/visionforlife-icon-maskable-512.png",
+      "src": "/truthlib/truthlib-icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

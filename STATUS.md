@@ -1,15 +1,15 @@
-# VisionforLife 프로젝트 현황
+# 진리서재 프로젝트 현황
 
 **갱신:** 2026-07-09
 
 ## 개요
 
-VisionforLife — 여정형 마이크로-LMS.
+진리서재 — 여정형 마이크로-LMS.
 
 ## 로컬 실행
 
 ```bat
-cd C:\Projects\visionforlife
+cd C:\Projects\truthlib
 copy config.example.json config.local.json
 serve.bat
 ```

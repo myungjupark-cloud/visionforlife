@@ -1,5 +1,5 @@
 # 목차 전체를 맥락으로 두고, 장별로 본문을 작성해 텍스트 파일로 저장합니다.
-# 사전: visionforlife 서버 실행 (serve.bat → http://localhost:8780) + Ollama
+# 사전: truthlib 서버 실행 (serve.bat → http://localhost:8780) + Ollama
 #
 # 사용:
 #   powershell -File write_book_chapters.ps1 -TocPath .\toc.txt
@@ -62,7 +62,7 @@ function Ask-Local([string]$question, [string]$context) {
         $r = Invoke-RestMethod -Uri $uri -Method POST -ContentType 'application/json; charset=utf-8' `
             -Body $bytes -TimeoutSec $TimeoutSec
     } catch {
-        throw "API 호출 실패 ($uri): $($_.Exception.Message)`nvisionforlife serve.bat 가 켜져 있는지 확인하세요."
+        throw "API 호출 실패 ($uri): $($_.Exception.Message)`ntruthlib serve.bat 가 켜져 있는지 확인하세요."
     }
     if (-not $r.ok) {
         $err = if ($r.error) { [string]$r.error } else { 'unknown' }

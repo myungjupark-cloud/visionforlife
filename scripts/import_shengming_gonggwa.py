@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""생명공과 정리 텍스트 → VisionforLife 카탈로그·과정·mindmap.json"""
+"""생명공과 정리 텍스트 → 진리서재 카탈로그·과정·mindmap.json"""
 
 from __future__ import annotations
 

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "catalogSlug": "g4",
+  "courses": [
+    {
+      "slug": "genesis4",
+      "title": "창조과정",
+      "subtitle": "창조과정 이해를 통해 하나남과 사람을 더 이해합니다.",
+      "description": "창조과정\n\n아래에서 **제1과**부터 순서대로 공부하세요.",
+      "order": 1
+    }
+  ]
+}

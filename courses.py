@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VisionforLife — 카탈로그·과정·mindmap 경로."""
+"""진리서재 — 카탈로그·과정·mindmap 경로."""
 
 from __future__ import annotations
 

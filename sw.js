@@ -1,5 +1,5 @@
-/* VisionforLife — PWA service worker (/visionforlife/ 전용, 로컬은 scope 기준) */
-var CACHE = "vfl-v3";
+/* 진리서재 — PWA service worker (/truthlib/ 전용, 로컬은 scope 기준) */
+var CACHE = "truthlib-v7";
 
 function appBase() {
   try {
@@ -9,7 +9,7 @@ function appBase() {
     if (!p.endsWith("/")) p = p.replace(/\/[^/]*$/, "/") || "/";
     return p;
   } catch (e) {
-    return "/visionforlife/";
+    return "/truthlib/";
   }
 }
 
@@ -28,7 +28,7 @@ var PRECACHE = [
   BASE + "data/site-settings.json",
   BASE + "icon-192.png",
   BASE + "icon-512.png",
-  BASE + "visionforlife-icon-maskable-512.png",
+  BASE + "truthlib-icon-maskable-512.png",
   BASE + "apple-touch-icon.png"
 ];
 

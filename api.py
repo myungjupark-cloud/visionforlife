@@ -1150,7 +1150,7 @@ def _deploy_mindmap_background() -> None:
 
 
 
-class VisionforLifeHandler(SimpleHTTPRequestHandler):
+class 진리서재Handler(SimpleHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
 
@@ -1236,7 +1236,7 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
 
                 "ok": True,
 
-                "service": "visionforlife",
+                "service": "truthlib",
 
                 "rag": {
 
@@ -1257,7 +1257,7 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             try:
                 req = urllib.request.Request(
                     "https://thegospel.kr/hymnapp/titles.json",
-                    headers={"User-Agent": "VisionforLife/1.0", "Accept": "application/json"},
+                    headers={"User-Agent": "진리서재/1.0", "Accept": "application/json"},
                 )
                 with urllib.request.urlopen(req, timeout=20) as res:
                     titles = json.loads(res.read().decode("utf-8"))
@@ -1414,7 +1414,7 @@ class VisionforLifeHandler(SimpleHTTPRequestHandler):
             send_json(self, 200, {
                 "ok": True,
                 "async": True,
-                "url": "https://thegospel.kr/visionforlife/",
+                "url": "https://thegospel.kr/truthlib/",
                 "message": "thegospel.kr 배포 진행 중",
             })
             return
@@ -1911,7 +1911,7 @@ def remote_public_url(cfg: dict) -> str:
 
 def print_access_urls(port: int, cfg: dict | None = None) -> None:
     cfg = cfg or load_config()
-    print(f"VisionforLife -> http://localhost:{port}/")
+    print(f"진리서재 -> http://localhost:{port}/")
     print("  같은 Wi-Fi 폰에서 접속:")
     lan_ips = [ip for ip in lan_ip_addresses() if not is_tailscale_ip(ip)]
     if lan_ips:
@@ -1945,7 +1945,7 @@ def main() -> None:
 
     voyage_key = resolve_voyage_key(cfg)
 
-    server = ThreadingHTTPServer(("", PORT), VisionforLifeHandler)
+    server = ThreadingHTTPServer(("", PORT), 진리서재Handler)
     server.daemon_threads = True
     server.allow_reuse_address = True
 

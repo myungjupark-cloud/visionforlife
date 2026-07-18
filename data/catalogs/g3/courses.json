@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "catalogSlug": "g3",
+  "courses": [
+    {
+      "slug": "genesis3",
+      "title": "만물의 창조",
+      "subtitle": "",
+      "description": "만물의 창조\n\n아래에서 **제1과**부터 순서대로 공부하세요.",
+      "order": 1
+    }
+  ]
+}

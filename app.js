@@ -200,9 +200,9 @@
     catalogFormSubmit: $("catalog-form-submit")
   };
 
-  var PROGRESS_KEY = "visionforlife-progress";
-  var SESSION_KEY = "visionforlife-session";
-  var USER_CACHE_KEY = "visionforlife-user";
+  var PROGRESS_KEY = "truthlib-progress";
+  var SESSION_KEY = "truthlib-session";
+  var USER_CACHE_KEY = "truthlib-user";
   var IDLE_LOGOUT_MS = 30 * 60 * 1000;
   var idleTimer = null;
   var idleEventsBound = false;
@@ -334,7 +334,7 @@
 
   window.FaithMarkdownAssetUrl = assetUrl;
 
-  /** App-base-relative API so thegospel.kr/visionforlife/api/... works. */
+  /** App-base-relative API so thegospel.kr/truthlib/api/... works. */
   function apiUrl(path) {
     var raw = String(path || "");
     var q = "";
@@ -1052,7 +1052,7 @@
     if (/thegospel\.kr$/i.test(location.hostname)) {
       return apiUrl("/" + raw) + q;
     }
-    return "https://thegospel.kr/visionforlife/" + raw + q;
+    return "https://thegospel.kr/truthlib/" + raw + q;
   }
 
   function memberAdminPin() {
@@ -1856,7 +1856,7 @@
     if (els.authModalHint) {
       els.authModalHint.textContent = state.authMode === "register"
         ? "회원 등록 후 운영자 승인이 있어야 로그인할 수 있습니다."
-        : "VisionforLife 학습 진도를 저장하려면 로그인하세요.";
+        : "진리서재 학습 진도를 저장하려면 로그인하세요.";
     }
     if (els.authNameRow) els.authNameRow.hidden = state.authMode !== "register";
     if (els.authToggleMode) {
@@ -3441,7 +3441,7 @@
     fallbackCopy();
   }
 
-  var ADMIN_PANEL_KEY = "visionforlife-admin-width";
+  var ADMIN_PANEL_KEY = "truthlib-admin-width";
   var ADMIN_PANEL_DEFAULT = 520;
   var ADMIN_PANEL_MIN = 280;
   var ADMIN_PANEL_GUTTER = 144;
@@ -3518,7 +3518,7 @@
   }
 
   function initFontSize() {
-    var KEY = "visionforlife-fs";
+    var KEY = "truthlib-fs";
     var fs = 1;
     try {
       var sv = localStorage.getItem(KEY);
@@ -3540,7 +3540,7 @@
   }
 
   function initTheme() {
-    var KEY = "visionforlife-theme";
+    var KEY = "truthlib-theme";
     var btn = document.getElementById("btn-theme");
     var meta = document.querySelector('meta[name="theme-color"]');
 
@@ -3579,7 +3579,7 @@
     }
   }
 
-  var AI_MODE_KEY = "visionforlife-ai-mode";
+  var AI_MODE_KEY = "truthlib-ai-mode";
 
   function getAiAskMode() {
     if (!els.aiAskMode) return "rag";
@@ -4056,7 +4056,7 @@
       copyExternalLink();
       return;
     }
-    navigator.share({ title: document.title || "VisionforLife", url: url, text: url })
+    navigator.share({ title: document.title || "진리서재", url: url, text: url })
       .then(function () {
         closeLinkOpenSheet();
       })
@@ -5335,7 +5335,7 @@
     bar.setAttribute("role", "note");
     bar.innerHTML =
       '<button type="button" class="pwa-install-bar__close" aria-label="닫기" id="pwa-install-close">×</button>' +
-      '<div class="pwa-install-bar__title">VisionforLife 앱 설치</div>' +
+      '<div class="pwa-install-bar__title">진리서재 앱 설치</div>' +
       '<div id="pwa-install-btn-wrap" class="pwa-install-bar__btn-wrap is-visible">' +
       '<button type="button" id="pwa-install-btn" class="pwa-install-bar__install">홈 화면에 추가하는 방법</button>' +
       "</div>" +
@@ -5663,6 +5663,9 @@
   }
 
   function bootApp() {
+    var appTitle = document.querySelector(".app-title");
+    if (appTitle) appTitle.textContent = "진리서재";
+    document.title = "진리서재";
     initPwaBackButton();
     initFontSize();
     initTheme();
@@ -5731,9 +5734,9 @@
 
   bootApp();
   if ("serviceWorker" in navigator) {
-    // 찬송가·라이프스터디와 동일: 배포 경로면 절대 경로로 등록
-    var swUrl = /\/visionforlife(\/|$)/i.test(location.pathname || "")
-      ? "/visionforlife/sw.js"
+    // 배포 경로면 절대 경로로 서비스워커 등록
+    var swUrl = /\/truthlib(\/|$)/i.test(location.pathname || "")
+      ? "/truthlib/sw.js"
       : assetUrl("sw.js");
     navigator.serviceWorker.register(swUrl).catch(function () {});
   }

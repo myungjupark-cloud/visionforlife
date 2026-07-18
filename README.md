@@ -1,4 +1,4 @@
-# VisionforLife
+# 진리서재
 
 개인화 **여정형 마이크로-LMS** PWA.
 
@@ -16,11 +16,11 @@ serve.bat
 ## 폴더 구조
 
 ```
-visionforlife/
+truthlib/
 ├── index.html, app.js, app.css   # PWA UI
 ├── api.py, auth_store.py         # API·회원 (구현 중)
 ├── data/
-│   ├── visionforlife.db             # 회원·진도 (생성 예정)
+│   ├── truthlib.db             # 회원·진도 (생성 예정)
 │   └── courses/
 │       └── who-is-god/
 │           └── mindmap.json      # 첫 샘플 과정

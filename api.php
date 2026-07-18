@@ -1,7 +1,7 @@
 <?php
 /**
- * VisionforLife Cafe24 API — 회원 등록·로그인·진도·회원관리
- * URL: /visionforlife/api/...  → 이 파일로 rewrite
+ * 진리서재 Cafe24 API — 회원 등록·로그인·진도·회원관리
+ * URL: /truthlib/api/...  → 이 파일로 rewrite
  */
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -24,7 +24,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 }
 
 define('VFL_ROOT', __DIR__);
-define('VFL_DB', VFL_ROOT . '/data/visionforlife.db');
+define('VFL_DB', VFL_ROOT . '/data/truthlib.db');
 define('VFL_COOKIE', 'vfl_session');
 define('VFL_SESSION_DAYS', 30);
 define('VFL_PBKDF2_ITERS', 120000);
@@ -169,7 +169,7 @@ function vfl_session_cookie($token, $maxAge = null) {
   $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
   $parts = [
     VFL_COOKIE . '=' . $token,
-    'Path=/visionforlife',
+    'Path=/truthlib',
     'HttpOnly',
     'SameSite=Lax',
     'Max-Age=' . (int)$maxAge,
@@ -180,7 +180,7 @@ function vfl_session_cookie($token, $maxAge = null) {
 
 function vfl_clear_cookie() {
   $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-  $parts = [VFL_COOKIE . '=; Path=/visionforlife; HttpOnly; Max-Age=0; SameSite=Lax'];
+  $parts = [VFL_COOKIE . '=; Path=/truthlib; HttpOnly; Max-Age=0; SameSite=Lax'];
   if ($secure) $parts[0] .= '; Secure';
   // Also clear legacy Path=/ cookie if present.
   $parts[] = VFL_COOKIE . '=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax' . ($secure ? '; Secure' : '');
@@ -286,7 +286,7 @@ $data = ($method === 'POST' || $method === 'PATCH') ? vfl_body() : [];
 
 try {
   if ($method === 'GET' && $path === '/api/health') {
-    vfl_json(200, ['ok' => true, 'service' => 'visionforlife', 'runtime' => 'php']);
+    vfl_json(200, ['ok' => true, 'service' => 'truthlib', 'runtime' => 'php']);
   }
 
   if ($method === 'GET' && $path === '/api/hymn/titles') {

@@ -12,7 +12,7 @@ Options -Indexes
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /visionforlife/
+  RewriteBase /truthlib/
   RewriteRule ^api/?$ api.php?__path= [QSA,L]
   RewriteRule ^api/(.*)$ api.php?__path=$1 [QSA,L]
 </IfModule>

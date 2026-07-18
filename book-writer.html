@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>책 작성 도구 · VisionforLife</title>
+<title>책 작성 도구 · 진리서재</title>
 <style>
   :root{
     --bg:#f6f1e6; --panel:#fffdf8; --ink:#4f4840; --muted:#6b665d;
@@ -99,9 +99,9 @@
 </head>
 <body>
   <div class="wrap">
-    <p class="brand">VISIONFORLIFE</p>
+    <p class="brand">진리서재</p>
     <h1>책 작성 도구</h1>
-    <p class="lead">전체 기획을 유지한 채 목차를 만들고, 검수 후 장별 본문을 순차 작성·파일 저장한 뒤, VisionforLife 카탈로그에 올릴 수 있습니다. (로컬 AI · search.db)</p>
+    <p class="lead">전체 기획을 유지한 채 목차를 만들고, 검수 후 장별 본문을 순차 작성·파일 저장한 뒤, 진리서재 카탈로그에 올릴 수 있습니다. (로컬 AI · search.db)</p>
 
     <div class="steps" id="stepChips">
       <span class="stepchip on" data-step="1">1 기획·목차</span>
@@ -212,7 +212,7 @@
     <!-- STEP 4 -->
     <div class="panel" id="panel4">
       <h2>4. 앱에 올리기</h2>
-      <p class="sub">완료된 장을 VisionforLife 카탈로그·과정으로 반영합니다. 기본은 <b>비공개</b>입니다. 기존 과정 slug면 mindmap을 <b>통째로 덮어씁니다</b>.</p>
+      <p class="sub">완료된 장을 진리서재 카탈로그·과정으로 반영합니다. 기본은 <b>비공개</b>입니다. 기존 과정 slug면 mindmap을 <b>통째로 덮어씁니다</b>.</p>
 
       <label class="field" for="adminPin">관리자 PIN</label>
       <input id="adminPin" type="password" autocomplete="off" placeholder="앱 관리자 PIN">
@@ -269,7 +269,7 @@
       <p class="hint" id="publishLinks" hidden></p>
     </div>
 
-    <p class="foot"><a href="./">VisionforLife</a> · <code>http://localhost:8780/book-writer.html</code></p>
+    <p class="foot"><a href="./">진리서재</a> · <code>http://localhost:8780/book-writer.html</code></p>
   </div>
 
 <script>
@@ -491,27 +491,93 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
   }
 
+  function explainFetchError(err, url, step) {
+    var msg = (err && err.message) ? String(err.message) : String(err || 'unknown');
+    var origin = location.origin;
+    var proto = location.protocol;
+    var where = step ? ('[' + step + '] ') : '';
+    if (proto === 'file:') {
+      return where + 'HTML을 파일로 열었습니다 (file://). ' +
+        '반드시 serve.bat 실행 후 http://localhost:8780/book-writer.html 로 여세요.';
+    }
+    if (err && err.name === 'AbortError') return where + '요청이 중지되었습니다.';
+    if (/Failed to fetch|NetworkError|Load failed|fetch/i.test(msg) || (err && err.name === 'TypeError')) {
+      return where + '서버에 연결할 수 없습니다 (' + msg + ').\n' +
+        '· 요청 URL: ' + url + '\n' +
+        '· 현재 페이지: ' + origin + location.pathname + '\n' +
+        '· 확인: 프로젝트에서 serve.bat 가 켜져 있는지, 주소가 http://localhost:8780 인지 보세요.\n' +
+        '· 브라우저에서 ' + HEALTH + ' 를 열어 JSON이 보이면 서버는 정상입니다.';
+    }
+    return where + msg + '\n· 요청 URL: ' + url;
+  }
+
   async function ensureServer() {
-    var h = await fetch(HEALTH).then(function (r) { return r.json(); });
-    if (!h) throw new Error('health fail');
-    return h;
+    try {
+      var res = await fetch(HEALTH, { credentials: 'same-origin' });
+      var h = await res.json().catch(function () { return null; });
+      if (!res.ok || !h || !h.ok) {
+        throw new Error(
+          'health 실패 (HTTP ' + res.status + ')' +
+          (h && h.error ? ': ' + h.error : '') +
+          ' — ' + HEALTH
+        );
+      }
+      return h;
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw e;
+      throw new Error(explainFetchError(e, HEALTH, '서버 확인'));
+    }
   }
 
   async function ask(question, context) {
     abortCtrl = new AbortController();
-    var res = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question: question,
-        context: context || '',
-        mode: modeEl.value
-      }),
-      signal: abortCtrl.signal
-    });
+    var res;
+    try {
+      res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question,
+          context: context || '',
+          mode: modeEl.value
+        }),
+        signal: abortCtrl.signal
+      });
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw e;
+      throw new Error(explainFetchError(e, API, 'AI 요청'));
+    }
     var data = await res.json().catch(function () { return {}; });
-    if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    if (!res.ok || !data.ok) {
+      var detail = data.error || data.message || ('HTTP ' + res.status);
+      if (data.detail) detail += ' — ' + data.detail;
+      throw new Error('[AI 응답] ' + detail + '\n· 요청 URL: ' + API + '\n· mode: ' + modeEl.value);
+    }
     return String(data.answer || '');
+  }
+
+  async function refreshServerBadge() {
+    if (location.protocol === 'file:') {
+      setStatus(
+        status1,
+        '경고: file:// 로 열림. serve.bat 후 http://localhost:8780/book-writer.html 로 여세요.',
+        'err'
+      );
+      return;
+    }
+    try {
+      var h = await ensureServer();
+      var rag = h.rag || {};
+      setStatus(
+        status1,
+        '서버 연결됨 · ' + location.origin +
+          (rag.searchDbReady ? ' · search.db OK' : ' · search.db 없음(RAG 시 주의)') +
+          ' · 「목차 질문하기」를 누르세요',
+        'ok'
+      );
+    } catch (e) {
+      setStatus(status1, String(e.message || e), 'err');
+    }
   }
 
   function setTocAskingUi(on) {
@@ -575,7 +641,7 @@
       );
     } catch (e) {
       if (e && e.name === 'AbortError') setStatus(status1, '중지됨. 질문을 수정한 뒤 다시 질문할 수 있습니다.', 'ok');
-      else setStatus(status1, '오류: ' + (e.message || e) + ' — 수정 후 다시 질문하세요.', 'err');
+      else setStatus(status1, '오류:\n' + (e.message || e), 'err');
     } finally {
       running = false;
       abortCtrl = null;
@@ -1135,7 +1201,7 @@
   refreshStartOptions();
   renderList();
   syncCatModeUi();
-  setStatus(status1, '서버: ' + location.origin + ' · serve.bat 실행 후 사용');
+  refreshServerBadge();
   loadCatalogs().catch(function () {});
 })();
 </script>

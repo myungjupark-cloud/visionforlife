@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VisionforLife -> thegospel.kr/visionforlife FTP 배포."""
+"""진리서재 -> thegospel.kr/truthlib FTP 배포."""
 
 from __future__ import annotations
 
@@ -11,9 +11,9 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-LOCAL = ROOT.parent / "thegospel-kr" / "visionforlife"
-REMOTE = "/www/visionforlife"
-PUBLIC_URL = "https://thegospel.kr/visionforlife/"
+LOCAL = ROOT.parent / "thegospel-kr" / "truthlib"
+REMOTE = "/www/truthlib"
+PUBLIC_URL = "https://thegospel.kr/truthlib/"
 
 STATIC_FILES = [
     ".htaccess",
@@ -25,8 +25,9 @@ STATIC_FILES = [
     "icon.svg",
     "icon-192.png",
     "icon-512.png",
-    "visionforlife-icon-maskable-512.png",
+    "truthlib-icon-maskable-512.png",
     "apple-touch-icon.png",
+    "og-image.png",
     "markdown.js",
     "scr-link.js",
     "version.js",

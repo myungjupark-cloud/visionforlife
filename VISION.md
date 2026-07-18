@@ -1,4 +1,4 @@
-# VisionforLife
+# 진리서재
 
 **여정형 마이크로-LMS** — 사용자의 개별 학습 목표와 진도에 맞춰 소규모 학습 콘텐츠를 제공합니다.
 
@@ -6,10 +6,10 @@
 
 ## faith-mindmap과의 관계
 
-| | faith-mindmap | VisionforLife |
+| | faith-mindmap | 진리서재 |
 |--|---------------|------------|
 | 목적 | 믿음 여정 운영·thegospel.kr | 범용 마이크로-LMS 플랫폼 |
-| 폴더 | `C:\Projects\faith-mindmap` | `C:\Projects\visionforlife` |
+| 폴더 | `C:\Projects\faith-mindmap` | `C:\Projects\truthlib` |
 | 유지보수 | **계속** (별도) | 이 저장소 |
 | 결제 | — | **없음** |
 | 회원 | 운영 PIN만 | **가입·로그인·진도** (구현 중) |

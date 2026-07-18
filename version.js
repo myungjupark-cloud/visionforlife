@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var VISIONFORLIFE_UPDATES = [
+  var TRUTHLIB_UPDATES = [
     {
       ver: "0.4",
       date: "2026-07-09",
@@ -34,8 +34,8 @@
       ver: "0.1",
       date: "2026-07-08",
       notes: [
-        "브랜드명 VisionforLife로 확정",
-        "VisionforLife 프로젝트 시작",
+        "브랜드명 진리서재로 확정",
+        "진리서재 프로젝트 시작",
         "첫 샘플 과정: 하나님은 누구신가?",
         "faith-mindmap 여정 UI 기반"
       ]
@@ -52,11 +52,11 @@
     var btn = document.getElementById("app-ver-btn");
     var modal = document.getElementById("app-update-modal");
     var list = document.getElementById("app-changelog");
-    if (!btn || !modal || !list || !VISIONFORLIFE_UPDATES.length) return;
+    if (!btn || !modal || !list || !TRUTHLIB_UPDATES.length) return;
 
-    btn.textContent = "Ver. " + VISIONFORLIFE_UPDATES[0].ver + " · 업데이트 내역";
+    btn.textContent = "Ver. " + TRUTHLIB_UPDATES[0].ver + " · 업데이트 내역";
 
-    list.innerHTML = VISIONFORLIFE_UPDATES.map(function (u) {
+    list.innerHTML = TRUTHLIB_UPDATES.map(function (u) {
       var notes = (u.notes || []).map(function (n) {
         return "<li>" + esc(n) + "</li>";
       }).join("");

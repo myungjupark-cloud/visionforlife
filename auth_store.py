@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VisionforLife — 회원·세션 저장 (SQLite)."""
+"""진리서재 — 회원·세션 저장 (SQLite)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import time
 from typing import Any
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(ROOT, "data", "visionforlife.db")
+DB_PATH = os.path.join(ROOT, "data", "truthlib.db")
 
 SESSION_TTL_SEC = 30 * 24 * 3600
 

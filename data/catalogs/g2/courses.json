@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "catalogSlug": "g2",
+  "courses": [
+    {
+      "slug": "genesis2",
+      "title": "사람의 창조",
+      "subtitle": "",
+      "description": "사람의 창조\n\n아래에서 **제1과**부터 순서대로 공부하세요.",
+      "order": 1
+    }
+  ]
+}
