@@ -41,7 +41,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="app.css?v=29">
+  <link rel="stylesheet" href="app.css?v=30">
   <script>
     (function () {
       var path = location.pathname || "";
@@ -66,6 +66,7 @@
   <header class="app-header">
     <h1 class="app-title">진리서재</h1>
     <div class="header-actions">
+      <button type="button" id="btn-bookmarks" class="btn btn-ghost" title="책갈피">책갈피</button>
       <button type="button" id="btn-refresh" class="btn btn-ghost" title="최신 내용 받기">새로고침</button>
       <button type="button" id="btn-reset" class="btn btn-ghost" title="목록">목록</button>
       <button type="button" id="btn-account" class="btn btn-ghost" title="로그인·등록" hidden>로그인</button>
@@ -89,6 +90,10 @@
       </section>
       <section id="catalog-resume" class="catalog-resume" hidden>
         <button type="button" id="btn-catalog-resume" class="catalog-resume-btn"></button>
+      </section>
+      <section id="catalog-bookmarks" class="catalog-bookmarks" hidden>
+        <h3 class="catalog-bookmarks-heading">이 주제 책갈피 <span id="catalog-bm-count"></span></h3>
+        <div id="catalog-bm-list" class="catalog-bm-list"></div>
       </section>
       <section id="catalog-goals" class="catalog-goals" hidden>
         <label class="catalog-goals-label">내 추구 목표
@@ -404,11 +409,27 @@
     </div>
   </div>
 
+  <button type="button" id="fab-bm" class="fab-bm" hidden aria-label="책갈피 담기/해제" title="책갈피">
+    <svg class="fab-bm__ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 0 1 1 1v19l-7-4.2L5 22V3a1 1 0 0 1 1-1z"/></svg>
+  </button>
+
+  <div id="bm-overlay" class="bm-overlay" hidden>
+    <div class="bm-overlay__scrim" data-bm-close aria-hidden="true"></div>
+    <aside class="bm-drawer" role="dialog" aria-modal="true" aria-labelledby="bm-drawer-title">
+      <div class="bm-drawer__head">
+        <h2 id="bm-drawer-title" class="bm-drawer__title">책갈피</h2>
+        <button type="button" id="bm-drawer-close" class="bm-drawer__close" aria-label="닫기">×</button>
+      </div>
+      <p id="bm-drawer-hint" class="bm-drawer__hint">이 기기에만 저장됩니다. 학습 주제별로 모아 둡니다.</p>
+      <div id="bm-list" class="bm-list"></div>
+    </aside>
+  </div>
+
   <div id="toast" class="toast" hidden></div>
 
   <script src="markdown.js?v=12"></script>
-  <script src="scr-link.js?v=1"></script>
+  <script src="scr-link.js?v=2"></script>
   <script src="version.js?v=7"></script>
-  <script src="app.js?v=121"></script>
+  <script src="app.js?v=122"></script>
 </body>
 </html>

@@ -153,6 +153,16 @@
     importFile: $("import-file"),
     btnExitAdmin: $("btn-exit-admin"),
     toast: $("toast"),
+    btnBookmarks: $("btn-bookmarks"),
+    fabBm: $("fab-bm"),
+    bmOverlay: $("bm-overlay"),
+    bmDrawerClose: $("bm-drawer-close"),
+    bmDrawerTitle: $("bm-drawer-title"),
+    bmDrawerHint: $("bm-drawer-hint"),
+    bmList: $("bm-list"),
+    catalogBookmarks: $("catalog-bookmarks"),
+    catalogBmCount: $("catalog-bm-count"),
+    catalogBmList: $("catalog-bm-list"),
     catalogPanel: $("catalog-panel"),
     catalogTitle: $("catalog-title"),
     catalogLead: $("catalog-lead"),
@@ -560,6 +570,7 @@
       els.btnMarkComplete.textContent = done ? "✓ 이해 완료" : "✓ 이해했습니다";
       els.btnMarkComplete.title = done ? "다시 눌러 이해 완료 취소" : "이 주제를 이해 완료로 표시";
     }
+    updateBmFabUI();
   }
 
   function setScreen(screen) {
@@ -577,6 +588,8 @@
     if (els.btnAddCourse) els.btnAddCourse.hidden = !state.adminCatalog || !inCatalog;
     updateResetButtonLabel();
     updateCatalogAuthCta();
+    updateBmFabUI();
+    if (!inCatalog) renderCatalogBookmarksPanel();
   }
 
   /** Header list button: in-lesson → 처음으로; at course root → 홈/과정 목록. */
@@ -1474,6 +1487,7 @@
       if (els.catalogTitle) els.catalogTitle.textContent = "학습 주제";
       if (els.catalogLead) els.catalogLead.textContent = "배우고 싶은 주제를 골라 주세요. 주제마다 수업이 준비되어 있습니다.";
       if (els.catalogGoals) els.catalogGoals.hidden = !state.user;
+      renderCatalogBookmarksPanel();
       return;
     }
     if (state.screen === "catalog") {
@@ -1482,6 +1496,7 @@
       if (els.catalogLead) els.catalogLead.textContent = (meta && meta.description) || "이 주제의 수업을 선택하세요.";
       if (els.catalogGoals) els.catalogGoals.hidden = true;
       if (els.catalogResume) els.catalogResume.hidden = true;
+      renderCatalogBookmarksPanel();
     }
   }
 
@@ -1998,6 +2013,365 @@
     els.toast.hidden = false;
     clearTimeout(toast._t);
     toast._t = setTimeout(function () { els.toast.hidden = true; }, 2800);
+  }
+
+  /* ── Bookmarks (LifeStudy 참고 · 학습주제별) ── */
+  var BM_STORE_KEY = "truthlib-bookmarks";
+  var bmScrollTimer = null;
+
+  function readBmStore() {
+    try {
+      var raw = localStorage.getItem(BM_STORE_KEY);
+      if (!raw) return {};
+      var data = JSON.parse(raw);
+      return data && typeof data === "object" ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function writeBmStore(store) {
+    try {
+      localStorage.setItem(BM_STORE_KEY, JSON.stringify(store || {}));
+    } catch (e) {}
+  }
+
+  function bmId(courseSlug, nodeId) {
+    return String(courseSlug || "") + "|" + String(nodeId || "");
+  }
+
+  function bookmarksForCatalog(catalogSlug) {
+    var store = readBmStore();
+    var list = store[catalogSlug];
+    return Array.isArray(list) ? list.slice() : [];
+  }
+
+  function allBookmarksFlat() {
+    var store = readBmStore();
+    var out = [];
+    Object.keys(store).forEach(function (cat) {
+      var list = store[cat];
+      if (!Array.isArray(list)) return;
+      list.forEach(function (bm) {
+        if (bm && bm.id) out.push(bm);
+      });
+    });
+    out.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+    return out;
+  }
+
+  function findBookmark(catalogSlug, courseSlug, nodeId) {
+    var id = bmId(courseSlug, nodeId);
+    var list = bookmarksForCatalog(catalogSlug);
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].id === id) return list[i];
+    }
+    return null;
+  }
+
+  function saveBookmarkList(catalogSlug, list) {
+    var store = readBmStore();
+    if (!list || !list.length) delete store[catalogSlug];
+    else store[catalogSlug] = list;
+    writeBmStore(store);
+  }
+
+  function currentScrollPct() {
+    var st = window.scrollY || document.documentElement.scrollTop || 0;
+    var sh = Math.max(0, (document.documentElement.scrollHeight || 0) - (window.innerHeight || 0));
+    return sh > 0 ? Math.round((st / sh) * 100) : 0;
+  }
+
+  function restoreScrollPct(pct) {
+    pct = Number(pct) || 0;
+    if (pct < 1) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var sh = Math.max(0, (document.documentElement.scrollHeight || 0) - (window.innerHeight || 0));
+        window.scrollTo(0, Math.round((sh * pct) / 100));
+      });
+    });
+  }
+
+  function relBmDate(ts) {
+    if (!ts) return "";
+    var diff = Date.now() - ts;
+    if (diff < 60000) return "방금";
+    if (diff < 3600000) return Math.floor(diff / 60000) + "분 전";
+    if (diff < 86400000) return Math.floor(diff / 3600000) + "시간 전";
+    if (diff < 86400000 * 7) return Math.floor(diff / 86400000) + "일 전";
+    try {
+      return new Date(ts).toLocaleDateString("ko-KR");
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function catalogTitleOf(slug) {
+    var meta = (state.catalogs || []).find(function (c) { return c.slug === slug; });
+    return (meta && meta.title) || slug || "주제";
+  }
+
+  function courseTitleOf(slug) {
+    var found = (state.allCourses || []).find(function (c) { return c.slug === slug; });
+    if (found && found.title) return found.title;
+    if (state.courseSlug === slug && state.data && state.data.meta && state.data.meta.title) {
+      return state.data.meta.title;
+    }
+    return slug || "과정";
+  }
+
+  function canUseBookmarkHere() {
+    return !!(
+      state.screen === "course" &&
+      state.data &&
+      state.centerId &&
+      state.centerId !== state.data.rootId &&
+      state.courseSlug &&
+      state.activeCatalogSlug &&
+      !state.admin
+    );
+  }
+
+  function updateBmFabUI() {
+    if (!els.fabBm) return;
+    var show = canUseBookmarkHere();
+    els.fabBm.hidden = !show;
+    if (!show) {
+      els.fabBm.classList.remove("is-marked");
+      return;
+    }
+    var marked = !!findBookmark(state.activeCatalogSlug, state.courseSlug, state.centerId);
+    els.fabBm.classList.toggle("is-marked", marked);
+    els.fabBm.setAttribute("aria-label", marked ? "책갈피 해제" : "책갈피 담기");
+    els.fabBm.title = marked ? "책갈피 해제" : "책갈피 담기";
+  }
+
+  function toggleCurrentBookmark() {
+    if (!canUseBookmarkHere()) {
+      openBmOverlay();
+      return;
+    }
+    var cat = state.activeCatalogSlug;
+    var course = state.courseSlug;
+    var nodeId = state.centerId;
+    var node = nodeById(nodeId);
+    var list = bookmarksForCatalog(cat);
+    var id = bmId(course, nodeId);
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].id === id) { idx = i; break; }
+    }
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      saveBookmarkList(cat, list);
+      toast("책갈피 해제");
+    } else {
+      list.push({
+        id: id,
+        catalogSlug: cat,
+        courseSlug: course,
+        nodeId: nodeId,
+        catalogTitle: catalogTitleOf(cat),
+        courseTitle: courseTitleOf(course),
+        nodeTitle: (node && node.title) || nodeId,
+        pct: currentScrollPct(),
+        ts: Date.now()
+      });
+      saveBookmarkList(cat, list);
+      toast("책갈피에 담았어요");
+    }
+    updateBmFabUI();
+    renderCatalogBookmarksPanel();
+    if (els.bmOverlay && !els.bmOverlay.hidden) renderBmOverlayList();
+  }
+
+  function updateBmScrollIfMarked() {
+    if (!canUseBookmarkHere()) return;
+    var cat = state.activeCatalogSlug;
+    var list = bookmarksForCatalog(cat);
+    var id = bmId(state.courseSlug, state.centerId);
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].id === id) { idx = i; break; }
+    }
+    if (idx < 0) return;
+    var pct = currentScrollPct();
+    if (pct < 1) return;
+    if (list[idx].pct === pct) return;
+    list[idx].pct = pct;
+    list[idx].ts = Date.now();
+    saveBookmarkList(cat, list);
+  }
+
+  function removeBookmarkById(catalogSlug, id) {
+    var list = bookmarksForCatalog(catalogSlug).filter(function (x) {
+      return x && x.id !== id;
+    });
+    saveBookmarkList(catalogSlug, list);
+    updateBmFabUI();
+    renderCatalogBookmarksPanel();
+    renderBmOverlayList();
+  }
+
+  function jumpToBookmark(bm) {
+    if (!bm || !bm.courseSlug || !bm.nodeId) return;
+    closeBmOverlay();
+    var pct = Number(bm.pct) || 0;
+    var catalogSlug = bm.catalogSlug || null;
+
+    function afterOnNode() {
+      if (pct >= 1) {
+        setTimeout(function () {
+          restoreScrollPct(pct);
+        }, 80);
+      }
+      updateBmFabUI();
+    }
+
+    if (state.courseSlug === bm.courseSlug && state.data && nodeById(bm.nodeId)) {
+      if (catalogSlug) state.activeCatalogSlug = catalogSlug;
+      if (state.centerId !== bm.nodeId) openNode(bm.nodeId, true, "navigate");
+      else scrollFocusToTop();
+      afterOnNode();
+      return;
+    }
+
+    openCourse(bm.courseSlug, bm.nodeId, catalogSlug).then(function (data) {
+      if (!data) return;
+      if (state.centerId !== bm.nodeId && nodeById(bm.nodeId)) {
+        openNode(bm.nodeId, false, "static");
+      }
+      afterOnNode();
+    });
+  }
+
+  function bmItemHtml(bm, opts) {
+    opts = opts || {};
+    var showCourse = opts.showCourse !== false;
+    var title = esc(bm.nodeTitle || bm.nodeId || "과");
+    var subParts = [];
+    if (showCourse && bm.courseTitle) subParts.push(bm.courseTitle);
+    if (bm.pct >= 1) subParts.push(bm.pct + "% 위치");
+    if (bm.ts) subParts.push(relBmDate(bm.ts));
+    return (
+      '<div class="bm-item">' +
+      '<button type="button" class="bm-jump" data-bm-jump="' + esc(bm.id) + '" data-bm-cat="' + esc(bm.catalogSlug || "") + '">' +
+      "<b>" + title + "</b>" +
+      (subParts.length ? "<small>" + esc(subParts.join(" · ")) + "</small>" : "") +
+      "</button>" +
+      '<button type="button" class="bm-del" data-bm-del="' + esc(bm.id) + '" data-bm-cat="' + esc(bm.catalogSlug || "") + '" aria-label="삭제">×</button>' +
+      "</div>"
+    );
+  }
+
+  function bindBmListClicks(root) {
+    if (!root) return;
+    root.querySelectorAll("[data-bm-jump]").forEach(function (btn) {
+      btn.onclick = function () {
+        var cat = btn.getAttribute("data-bm-cat");
+        var id = btn.getAttribute("data-bm-jump");
+        var list = bookmarksForCatalog(cat);
+        var bm = null;
+        for (var i = 0; i < list.length; i++) {
+          if (list[i] && list[i].id === id) { bm = list[i]; break; }
+        }
+        if (bm) jumpToBookmark(bm);
+      };
+    });
+    root.querySelectorAll("[data-bm-del]").forEach(function (btn) {
+      btn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        removeBookmarkById(btn.getAttribute("data-bm-cat"), btn.getAttribute("data-bm-del"));
+        toast("책갈피를 삭제했습니다");
+      };
+    });
+  }
+
+  function renderCatalogBookmarksPanel() {
+    if (!els.catalogBookmarks || !els.catalogBmList) return;
+    if (state.screen !== "catalog" || !state.activeCatalogSlug) {
+      els.catalogBookmarks.hidden = true;
+      els.catalogBmList.innerHTML = "";
+      return;
+    }
+    var list = bookmarksForCatalog(state.activeCatalogSlug).sort(function (a, b) {
+      return (b.ts || 0) - (a.ts || 0);
+    });
+    if (!list.length) {
+      els.catalogBookmarks.hidden = true;
+      els.catalogBmList.innerHTML = "";
+      return;
+    }
+    if (els.catalogBmCount) els.catalogBmCount.textContent = "(" + list.length + ")";
+    els.catalogBmList.innerHTML = list.map(function (bm) {
+      return bmItemHtml(bm, { showCourse: true });
+    }).join("");
+    els.catalogBookmarks.hidden = false;
+    bindBmListClicks(els.catalogBmList);
+  }
+
+  function renderBmOverlayList() {
+    if (!els.bmList) return;
+    var focusCat = state.activeCatalogSlug;
+    var html = "";
+    if (focusCat) {
+      var list = bookmarksForCatalog(focusCat).sort(function (a, b) {
+        return (b.ts || 0) - (a.ts || 0);
+      });
+      if (els.bmDrawerTitle) els.bmDrawerTitle.textContent = catalogTitleOf(focusCat) + " 책갈피";
+      if (els.bmDrawerHint) {
+        els.bmDrawerHint.textContent = "이 기기에만 저장됩니다. 본문에서 리본 버튼으로 담을 수 있습니다.";
+      }
+      if (!list.length) {
+        els.bmList.innerHTML = '<div class="bm-empty">아직 책갈피가 없어요.<br>긴 과를 읽다가 오른쪽 아래 리본을<br>누르면 여기에 담깁니다.</div>';
+        return;
+      }
+      html = list.map(function (bm) { return bmItemHtml(bm, { showCourse: true }); }).join("");
+    } else {
+      if (els.bmDrawerTitle) els.bmDrawerTitle.textContent = "책갈피";
+      if (els.bmDrawerHint) {
+        els.bmDrawerHint.textContent = "학습 주제별로 모아 두었습니다. 이 기기에만 저장됩니다.";
+      }
+      var all = allBookmarksFlat();
+      if (!all.length) {
+        els.bmList.innerHTML = '<div class="bm-empty">아직 책갈피가 없어요.<br>과를 읽다가 오른쪽 아래 리본을<br>누르면 여기에 담깁니다.</div>';
+        return;
+      }
+      var groups = {};
+      var order = [];
+      all.forEach(function (bm) {
+        var cat = bm.catalogSlug || "_";
+        if (!groups[cat]) {
+          groups[cat] = [];
+          order.push(cat);
+        }
+        groups[cat].push(bm);
+      });
+      order.forEach(function (cat) {
+        html += '<div class="bm-group-title">' + esc(catalogTitleOf(cat)) + "</div>";
+        html += groups[cat].map(function (bm) {
+          return bmItemHtml(bm, { showCourse: true });
+        }).join("");
+      });
+    }
+    els.bmList.innerHTML = html;
+    bindBmListClicks(els.bmList);
+  }
+
+  function openBmOverlay() {
+    if (!els.bmOverlay) return;
+    renderBmOverlayList();
+    els.bmOverlay.hidden = false;
+  }
+
+  function closeBmOverlay() {
+    if (!els.bmOverlay) return;
+    els.bmOverlay.hidden = true;
   }
 
   function nodeById(id) {
@@ -5139,6 +5513,34 @@
         toast("이해 완료로 표시했습니다");
       });
     }
+    if (els.btnBookmarks) {
+      els.btnBookmarks.addEventListener("click", function () {
+        openBmOverlay();
+      });
+    }
+    if (els.fabBm) {
+      els.fabBm.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleCurrentBookmark();
+      });
+    }
+    if (els.bmDrawerClose) {
+      els.bmDrawerClose.addEventListener("click", closeBmOverlay);
+    }
+    if (els.bmOverlay) {
+      els.bmOverlay.addEventListener("click", function (e) {
+        if (e.target && e.target.getAttribute("data-bm-close") != null) closeBmOverlay();
+      });
+    }
+    window.addEventListener(
+      "scroll",
+      function () {
+        if (bmScrollTimer) clearTimeout(bmScrollTimer);
+        bmScrollTimer = setTimeout(updateBmScrollIfMarked, 800);
+      },
+      { passive: true }
+    );
     els.btnReset.addEventListener("click", resetView);
     if (els.btnRefresh) els.btnRefresh.addEventListener("click", reloadMindmap);
     els.btnBack.addEventListener("click", function () {
