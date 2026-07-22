@@ -33,7 +33,8 @@
   var VCONT = '(?:\\s*[,，과]\\s*|\\s+)(\\d+)\\s*절';
 
   function stripHalf(s) {
-    return String(s).replace(/[上하下]/g, '');
+    // 반절 표기(2:4하, 4절下)만 제거. 하박국·사무엘하 등 책이름의 '하'는 유지.
+    return String(s).replace(/([0-9절])[上하下]+$/g, "$1");
   }
 
   function abbr(bookToken) {

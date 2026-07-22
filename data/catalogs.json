@@ -30,7 +30,7 @@
       "title": "생명공과",
       "description": "성경의 진리를 짧고 깊게 탐구하는 놀라운 학습 과정",
       "order": 4,
-      "visibility": "members",
+      "visibility": "public",
       "published": true
     },
     {
@@ -38,8 +38,8 @@
       "title": "천지창조",
       "description": "창조의 목적을 이해하면 하나님과 사람에 대해 깊은 이해가 생깁니디.",
       "order": 5,
-      "visibility": "public",
-      "published": true
+      "visibility": "private",
+      "published": false
     },
     {
       "slug": "human",
@@ -54,8 +54,8 @@
       "title": "창조의 정점, 사람",
       "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
       "order": 7,
-      "visibility": "public",
-      "published": true
+      "visibility": "private",
+      "published": false
     },
     {
       "slug": "g3",
@@ -70,8 +70,8 @@
       "title": "창조과정",
       "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
       "order": 9,
-      "visibility": "public",
-      "published": true
+      "visibility": "private",
+      "published": false
     },
     {
       "slug": "g5",
@@ -88,6 +88,14 @@
       "order": 11,
       "visibility": "private",
       "published": false
+    },
+    {
+      "slug": "by-faith",
+      "title": "믿음으로 말미암아 살리라",
+      "description": "믿음으로 사는 그리스도인의 정상 생활 — 12과",
+      "order": 5,
+      "visibility": "public",
+      "published": true
     }
   ]
 }
