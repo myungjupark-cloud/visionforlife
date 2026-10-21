@@ -41,7 +41,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="app.css?v=33">
+  <link rel="stylesheet" href="app.css?v=34">
   <script>
     (function () {
       var path = location.pathname || "";
@@ -71,7 +71,6 @@
       <button type="button" id="btn-reset" class="btn btn-ghost" title="목록">목록</button>
       <button type="button" id="btn-account" class="btn btn-ghost" title="로그인·등록" hidden>로그인</button>
       <button type="button" id="btn-member-admin" class="btn btn-ghost" title="회원 관리" hidden>회원관리</button>
-      <button type="button" id="btn-admin" class="btn btn-ghost" title="메인 운영자 모드">운영</button>
     </div>
   </header>
 
@@ -144,6 +143,10 @@
       <p id="focus-trail" class="focus-trail"></p>
     </div>
   </main>
+
+  <footer class="app-footer">
+    <button type="button" id="btn-admin" class="app-footer__admin" title="마스터 운영 모드">admin</button>
+  </footer>
 
   <div id="auth-overlay" class="admin-overlay" hidden>
     <div class="admin-modal">
@@ -430,6 +433,6 @@
   <script src="markdown.js?v=12"></script>
   <script src="scr-link.js?v=2"></script>
   <script src="version.js?v=7"></script>
-  <script src="app.js?v=128"></script>
+  <script src="app.js?v=129"></script>
 </body>
 </html>

@@ -823,7 +823,7 @@
     state.adminPin = "";
     if (els.catalogAdminBar) els.catalogAdminBar.hidden = true;
     if (els.btnAdmin) {
-      els.btnAdmin.textContent = "운영";
+      els.btnAdmin.textContent = "admin";
       els.btnAdmin.setAttribute("aria-pressed", "false");
     }
     setScreen(state.screen);
@@ -5101,7 +5101,7 @@
     setPanelVisible(els.adminEditorResizer, false);
     els.appMain.classList.remove("is-admin");
     document.body.classList.remove("has-admin-toolbar");
-    els.btnAdmin.textContent = "운영";
+    els.btnAdmin.textContent = "admin";
     els.btnAdmin.setAttribute("aria-pressed", "false");
     applyEditor();
     renderFocus("static");

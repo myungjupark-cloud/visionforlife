@@ -2138,6 +2138,27 @@ html[data-theme="dark"] .focus-complete-btn.is-done {
   cursor: pointer;
 }
 
+/* 맨 아래 마스터 입구 — 눈에 띄지 않게 작고 흐리게. 설치 안내 바에 가리지 않도록 아래 여백을 둔다. */
+.app-footer {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 1rem calc(7rem + env(safe-area-inset-bottom, 0px));
+}
+.app-footer__admin {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  opacity: 0.55;
+  cursor: pointer;
+}
+.app-footer__admin:hover,
+.app-footer__admin[aria-pressed="true"] { opacity: 1; color: var(--accent); }
+
 /* 내 계정 창 (설치 안내 창과 같은 틀을 쓴다) */
 .acct-form { margin-top: 12px; }
 .acct-form label { display: block; margin-top: 10px; font-size: 15px; color: var(--text-muted); }
