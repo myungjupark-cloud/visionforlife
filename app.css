@@ -148,8 +148,12 @@ body.is-resizing-admin::after {
 
 .focus-app {
   width: 100%;
-  max-width: 520px;
+  max-width: none;
   padding: 0.5rem 1rem 5.5rem;
+}
+
+@media (min-width: 768px) {
+  .focus-app { padding-left: 2rem; padding-right: 2rem; }
 }
 
 .focus-back {
@@ -1617,7 +1621,7 @@ body.has-admin-toolbar .app-version-foot {
 }
 
 .catalog-panel {
-  max-width: 42rem;
+  max-width: none;
   margin: 0 auto;
   padding: 1.25rem 1rem 5rem;
 }
