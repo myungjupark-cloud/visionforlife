@@ -222,6 +222,21 @@ def logout_user(token: str | None) -> None:
         conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
 
 
+def reset_user_password(user_id: int, password: str) -> dict[str, Any]:
+    if len(password or "") < 6:
+        raise ValueError("비밀번호는 6자 이상이어야 합니다")
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not row:
+            raise ValueError("회원을 찾을 수 없습니다")
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (_hash_password(password), user_id),
+        )
+        conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+    return _user_row_to_dict(row)
+
+
 def clear_user_sessions(user_id: int) -> None:
     with _connect() as conn:
         conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))

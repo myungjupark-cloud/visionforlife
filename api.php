@@ -603,6 +603,26 @@ try {
     vfl_json(200, ['ok' => true, 'user' => vfl_user_row($st->fetch(PDO::FETCH_ASSOC))]);
   }
 
+  if ($method === 'POST' && $path === '/api/admin/users/reset-password') {
+    list($ok, , $isMain) = vfl_require_pin_or_operator($db, $config, $data);
+    if (!$ok) vfl_json(403, ['ok' => false, 'error' => 'admin or operator required']);
+    $uid = (int)($data['userId'] ?? $data['id'] ?? 0);
+    $password = (string)($data['password'] ?? '');
+    if (strlen($password) < 6) throw new Exception('비밀번호는 6자 이상이어야 합니다');
+    $st = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $st->execute([$uid]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$row) throw new Exception('회원을 찾을 수 없습니다');
+    // 운영자 비밀번호는 메인 운영자(PIN)만 바꿀 수 있다
+    if (($row['role'] ?? '') === 'operator' && !$isMain) {
+      vfl_json(403, ['ok' => false, 'error' => '운영자 비밀번호는 메인 운영자만 바꿀 수 있습니다']);
+    }
+    $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+      ->execute([vfl_hash_password($password), $uid]);
+    $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$uid]);
+    vfl_json(200, ['ok' => true, 'user' => vfl_user_row($row)]);
+  }
+
   if ($method === 'POST' && $path === '/api/progress') {
     $user = vfl_user_from_token($db, vfl_token_from_request());
     if (!$user) vfl_json(401, ['ok' => false, 'error' => 'login required']);

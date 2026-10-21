@@ -63,6 +63,8 @@ from auth_store import (
     set_user_status,
     update_user_goals,
     update_user_name,
+    reset_user_password,
+    get_user_by_id,
     upsert_operator_message,
     upsert_progress,
     user_from_token,
@@ -1557,6 +1559,25 @@ class 진리서재Handler(SimpleHTTPRequestHandler):
             try:
                 user_id = int(data.get("userId") or data.get("id") or 0)
                 updated = update_user_name(user_id, str(data.get("name") or ""))
+            except (TypeError, ValueError) as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True, "user": updated})
+            return
+
+        if path == "/api/admin/users/reset-password":
+            data = read_json_body(self)
+            allowed, _op = require_pin_or_operator(self, data)
+            if not allowed:
+                send_json(self, 403, {"ok": False, "error": "admin or operator required"})
+                return
+            try:
+                user_id = int(data.get("userId") or data.get("id") or 0)
+                target = get_user_by_id(user_id)
+                if target and target.get("role") == "operator" and _op is not None:
+                    send_json(self, 403, {"ok": False, "error": "운영자 비밀번호는 메인 운영자만 바꿀 수 있습니다"})
+                    return
+                updated = reset_user_password(user_id, str(data.get("password") or ""))
             except (TypeError, ValueError) as exc:
                 send_json(self, 400, {"ok": False, "error": str(exc)})
                 return

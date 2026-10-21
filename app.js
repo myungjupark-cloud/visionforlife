@@ -1144,6 +1144,9 @@
         }
         actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="rename" data-user-id="' + u.id + '" data-user-name="' + esc(u.name || "") + '">이름</button>');
         actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="message" data-user-id="' + u.id + '">안내</button>');
+        if (showRole || u.role !== "operator") {
+          actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="reset-password" data-user-id="' + u.id + '">비밀번호</button>');
+        }
         if (showRole && u.status === "active") {
           if (u.role === "operator") {
             actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="demote" data-user-id="' + u.id + '">운영자 해제</button>');
@@ -1260,6 +1263,25 @@
           }
           toast("이름을 수정했습니다");
           refreshAdminUsersList();
+        })
+        .catch(function () { toast("서버 연결 실패"); });
+      return;
+    }
+    if (action === "reset-password") {
+      var nextPw = window.prompt("새 비밀번호를 정하세요 (6자 이상). 회원에게 직접 알려 주세요:");
+      if (nextPw == null) return;
+      nextPw = String(nextPw).trim();
+      if (nextPw.length < 6) {
+        toast("비밀번호는 6자 이상이어야 합니다");
+        return;
+      }
+      postAdminMember("/api/admin/users/reset-password", { userId: userId, password: nextPw })
+        .then(function (result) {
+          if (!result.ok || !result.data.ok) {
+            toast((result.data && result.data.error) || "비밀번호 변경 실패");
+            return;
+          }
+          toast("비밀번호를 바꿨습니다. 회원에게 알려 주세요.");
         })
         .catch(function () { toast("서버 연결 실패"); });
       return;
