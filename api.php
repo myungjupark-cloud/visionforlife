@@ -713,6 +713,65 @@ try {
     ]);
   }
 
+  // 카탈로그 정보 편집(제목·설명·공개 범위·순서) — 마스터(PIN 또는 마스터 계정)만.
+  // 새 카탈로그·과정·본문 편집은 아직 집 PC(serve.bat)에서만 한다.
+  if ($method === 'PATCH' && $path === '/api/catalogs') {
+    list($ok, , $isMain) = vfl_require_pin_or_operator($db, $config, $data);
+    if (!$ok || !$isMain) vfl_json(403, ['ok' => false, 'error' => 'master required']);
+    $file = VFL_ROOT . '/data/catalogs.json';
+    $fp = @fopen($file, 'c+');
+    if (!$fp) throw new Exception('카탈로그 파일을 열 수 없습니다');
+    flock($fp, LOCK_EX);
+    $raw = stream_get_contents($fp);
+    $index = json_decode($raw, true);
+    if (!is_array($index) || !isset($index['catalogs']) || !is_array($index['catalogs'])) {
+      flock($fp, LOCK_UN); fclose($fp);
+      throw new Exception('카탈로그 파일 형식이 올바르지 않습니다');
+    }
+    $slug = trim((string)($data['slug'] ?? ''));
+    $cats = $index['catalogs'];
+    $pos = -1;
+    foreach ($cats as $i => $c) { if (($c['slug'] ?? '') === $slug) { $pos = $i; break; } }
+    if ($pos < 0) { flock($fp, LOCK_UN); fclose($fp); throw new Exception('카탈로그를 찾을 수 없습니다'); }
+    $action = strtolower(trim((string)($data['action'] ?? '')));
+    $direction = strtolower(trim((string)($data['direction'] ?? '')));
+    if ($action === 'reorder' || in_array($direction, ['up', 'down'], true)) {
+      usort($cats, function ($a, $b) { return ($a['order'] ?? 999) <=> ($b['order'] ?? 999); });
+      foreach ($cats as $i => $c) { if (($c['slug'] ?? '') === $slug) { $pos = $i; break; } }
+      $swap = ($direction === 'down') ? $pos + 1 : $pos - 1;
+      if ($swap >= 0 && $swap < count($cats)) {
+        $tmp = $cats[$pos]; $cats[$pos] = $cats[$swap]; $cats[$swap] = $tmp;
+      }
+      foreach ($cats as $i => &$c) { $c['order'] = $i + 1; }
+      unset($c);
+      $entry = $cats[max(0, min(count($cats) - 1, ($direction === 'down') ? $pos + 1 : $pos - 1))];
+    } else {
+      $title = trim((string)($data['title'] ?? ''));
+      if ($title === '') { flock($fp, LOCK_UN); fclose($fp); throw new Exception('제목을 입력하세요'); }
+      $cats[$pos]['title'] = $title;
+      $cats[$pos]['description'] = trim((string)($data['description'] ?? ($cats[$pos]['description'] ?? '')));
+      if (array_key_exists('visibility', $data) && $data['visibility'] !== null) {
+        $vis = strtolower(trim((string)$data['visibility']));
+        if (!in_array($vis, ['public', 'members', 'private'], true)) {
+          flock($fp, LOCK_UN); fclose($fp);
+          throw new Exception('공개 범위는 public, members, private 중 하나여야 합니다');
+        }
+        $cats[$pos]['visibility'] = $vis;
+        $cats[$pos]['published'] = ($vis !== 'private');
+      }
+      $entry = $cats[$pos];
+    }
+    $index['catalogs'] = $cats;
+    @copy($file, $file . '.prev');
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($index, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    vfl_json(200, ['ok' => true, 'catalog' => $entry, 'catalogs' => $cats]);
+  }
+
   // Catalog/course/mindmap/AI/site-settings editing stays on local Python — return clear error on hosting.
   if (preg_match('#^/api/(catalogs|courses|mindmap|ai/ask|course-image|site-settings)$#', $path) && in_array($method, ['POST', 'PATCH'], true)) {
     vfl_json(501, [
