@@ -1,6 +1,11 @@
 DirectoryIndex index.html
 Options -Indexes
 
+# 회원 DB·내부 파일은 주소로 내려받지 못하게 막는다
+<FilesMatch "\.(db|sqlite|sqlite3|db-journal|db-wal|db-shm|py|bat|log)$">
+  Require all denied
+</FilesMatch>
+
 <IfModule mod_headers.c>
   <FilesMatch "^(sw\.js)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
