@@ -5345,6 +5345,11 @@
   }
 
   function deployToWeb() {
+    // 서버(thegospel.kr)에서는 저장하는 순간 바로 반영된다. 배포는 집 PC(serve.bat)에서만 쓰는 단계.
+    if (!SKIP_ADMIN_PIN) {
+      toast("서버에서는 저장하면 바로 반영됩니다. 배포가 필요 없습니다.");
+      return Promise.resolve();
+    }
     var btn = els.btnDeploy || els.btnCatalogDeploy;
     function setBusy(busy) {
       if (els.btnDeploy) {
@@ -5842,6 +5847,11 @@
     bindHymnPlayer();
     loadHymnTitles();
     els.btnSave.addEventListener("click", saveMindmap);
+    if (!SKIP_ADMIN_PIN) {
+      [els.btnDeploy, els.btnCatalogDeploy].forEach(function (b) {
+        if (b) { b.hidden = true; b.style.display = "none"; }
+      });
+    }
     if (els.btnDeploy) els.btnDeploy.addEventListener("click", deployToWeb);
     if (els.btnCatalogDeploy) els.btnCatalogDeploy.addEventListener("click", deployToWeb);
     if (els.siteAuthRequired) {
