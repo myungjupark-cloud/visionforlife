@@ -214,6 +214,9 @@ function vfl_user_from_token(PDO $db, $token) {
 }
 
 function vfl_is_localhost() {
+  // Host 헤더는 요청자가 마음대로 쓸 수 있어 믿지 않는다. 실제 접속 주소가 내 PC 자신일 때만 인정.
+  $addr = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+  if (!in_array($addr, ['127.0.0.1', '::1'], true)) return false;
   $host = strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]);
   return in_array($host, ['localhost', '127.0.0.1'], true);
 }
