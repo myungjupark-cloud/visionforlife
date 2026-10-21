@@ -1034,11 +1034,17 @@
   }
 
   function roleLabel(role) {
-    return role === "operator" ? "운영자" : "회원";
+    return role === "master" ? "마스터" : (role === "operator" ? "운영자" : "회원");
   }
 
   function isOperatorLoggedIn() {
-    return !!(state.user && state.user.role === "operator" && state.user.status === "active");
+    return !!(state.user && (state.user.role === "operator" || state.user.role === "master") && state.user.status === "active");
+  }
+
+  // 마스터(PIN) 권한은 회원 로그인과 섞이지 않는다. 회원으로 로그인해 있으면 PIN 권한을 쓰지 않는다.
+  // (마스터 계정은 서버가 role=master 로 알려 준다.)
+  function usePinAdmin() {
+    return !state.user && !!(state.adminCatalog || state.admin || SKIP_ADMIN_PIN);
   }
 
   function updateMemberAdminButton() {
@@ -1076,7 +1082,7 @@
     var url = memberApiUrl("/api/admin/users");
     var pin = memberAdminPin();
     // Main admin (PIN / local bypass) must send pin to thegospel.kr member API.
-    if ((state.adminCatalog || state.admin || SKIP_ADMIN_PIN) && pin) {
+    if (usePinAdmin() && pin) {
       url += (url.indexOf("?") >= 0 ? "&" : "?") + "pin=" + encodeURIComponent(pin);
     }
     return url;
@@ -1085,7 +1091,7 @@
   function adminMemberBody(extra) {
     var body = Object.assign({}, extra || {});
     var pin = memberAdminPin();
-    if ((state.adminCatalog || state.admin || SKIP_ADMIN_PIN) && pin) {
+    if (usePinAdmin() && pin) {
       body.pin = pin;
     }
     return body;
@@ -1136,7 +1142,7 @@
         if (u.status === "pending") {
           actions.push('<button type="button" class="btn btn-sm btn-primary admin-user-action" data-action="approve" data-user-id="' + u.id + '">승인</button>');
         }
-        var lockedOperator = u.role === "operator" && !showRole;
+        var lockedOperator = (u.role === "operator" || u.role === "master") && !showRole;
         if (u.status !== "disabled" && !lockedOperator) {
           actions.push('<button type="button" class="btn btn-sm btn-danger admin-user-action" data-action="disable" data-user-id="' + u.id + '">강퇴</button>');
         }
@@ -1148,9 +1154,12 @@
         if (!lockedOperator) {
           actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="reset-password" data-user-id="' + u.id + '">비밀번호</button>');
         }
-        if (showRole && u.status === "active") {
+        if (showRole && u.status === "active" && u.role !== "master") {
           if (u.role === "operator") {
             actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="demote" data-user-id="' + u.id + '">운영자 해제</button>');
+            if (usePinAdmin()) {
+              actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="make-master" data-user-id="' + u.id + '">마스터 지정</button>');
+            }
           } else {
             actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="promote" data-user-id="' + u.id + '">운영자 임명</button>');
           }
@@ -1183,7 +1192,8 @@
               esc((data && data.error) || "회원 목록을 불러올 수 없습니다") + "</p>";
             return;
           }
-          state.memberAdminIsMain = !!data.isMainAdmin || !!(state.adminCatalog || state.admin) || SKIP_ADMIN_PIN;
+          // 마스터 여부는 서버가 알려 준 값만 믿는다(로그인한 회원이면 화면 쪽 PIN 상태는 무시).
+          state.memberAdminIsMain = !!data.isMainAdmin;
           renderAdminUsersList(data.users);
         })
         .catch(function () {
@@ -1227,6 +1237,20 @@
             return;
           }
           toast("회원을 강퇴했습니다");
+          refreshAdminUsersList();
+        })
+        .catch(function () { toast("서버 연결 실패"); });
+      return;
+    }
+    if (action === "make-master") {
+      if (!window.confirm("이 계정을 마스터로 지정할까요?\n마스터는 운영자가 강퇴·수정할 수 없고, 운영자 임명·해제와 콘텐츠 운영을 합니다.")) return;
+      postAdminMember("/api/admin/users/set-role", { userId: userId, role: "master" })
+        .then(function (result) {
+          if (!result.ok || !result.data.ok) {
+            toast((result.data && result.data.error) || "마스터 지정 실패");
+            return;
+          }
+          toast("마스터로 지정했습니다");
           refreshAdminUsersList();
         })
         .catch(function () { toast("서버 연결 실패"); });
@@ -5610,6 +5634,10 @@
       // Appointed operator: open member management directly (no PIN / no re-login).
       if (isOperatorLoggedIn()) {
         openAdminUsersModal();
+        return;
+      }
+      if (state.user) {
+        toast("마스터 운영은 로그아웃한 뒤 마스터 PIN으로 들어가세요");
         return;
       }
       if (state.screen === "catalogs" || state.screen === "catalog") {

@@ -228,14 +228,19 @@ function vfl_pin_ok($pin, $config) {
 }
 
 function vfl_is_operator($user) {
-  return $user && ($user['role'] ?? '') === 'operator' && ($user['status'] ?? '') === 'active';
+  return $user && in_array(($user['role'] ?? ''), ['operator', 'master'], true) && ($user['status'] ?? '') === 'active';
+}
+
+// 마스터 계정(role=master)으로 로그인한 세션은 PIN 없이 마스터 권한을 가진다. 운영자와는 완전히 다른 등급.
+function vfl_is_master($user) {
+  return $user && ($user['role'] ?? '') === 'master' && ($user['status'] ?? '') === 'active';
 }
 
 function vfl_require_pin_or_operator(PDO $db, $config, $data = [], $pinQuery = '') {
   $pin = trim((string)($pinQuery !== '' ? $pinQuery : ($data['pin'] ?? '')));
   if (vfl_pin_ok($pin, $config)) return [true, null, $pin !== '' || vfl_is_localhost()];
   $user = vfl_user_from_token($db, vfl_token_from_request());
-  if (vfl_is_operator($user)) return [true, $user, false];
+  if (vfl_is_operator($user)) return [true, $user, vfl_is_master($user)];
   return [false, null, false];
 }
 
@@ -245,8 +250,8 @@ function vfl_deny_operator_target(PDO $db, $uid, $isMain) {
   $st = $db->prepare("SELECT role FROM users WHERE id = ?");
   $st->execute([$uid]);
   $role = $st->fetchColumn();
-  if ($role === 'operator') {
-    vfl_json(403, ['ok' => false, 'error' => '운영자 계정은 메인 운영자만 바꿀 수 있습니다']);
+  if ($role === 'operator' || $role === 'master') {
+    vfl_json(403, ['ok' => false, 'error' => '운영자·마스터 계정은 마스터만 바꿀 수 있습니다']);
   }
 }
 
@@ -347,7 +352,7 @@ try {
     $pin = (string)($_GET['pin'] ?? '');
     list($ok, $op, $isMain) = vfl_require_pin_or_operator($db, $config, [], $pin);
     if (!$ok) vfl_json(403, ['ok' => false, 'error' => 'admin or operator required']);
-    if ($op && $pin === '') $isMain = false;
+    if ($op && $pin === '') $isMain = vfl_is_master($op);
     $rows = $db->query("SELECT u.id, u.email, u.name, u.role, u.status, u.goals, u.created_at,
         COUNT(DISTINCT p.course_slug) AS course_count,
         COUNT(p.node_id) AS node_count
@@ -563,18 +568,27 @@ try {
   }
 
   if ($method === 'POST' && $path === '/api/admin/users/set-role') {
-    if (!vfl_pin_ok($data['pin'] ?? '', $config)) {
-      vfl_json(403, ['ok' => false, 'error' => 'main admin pin required']);
+    $byPin = vfl_pin_ok($data['pin'] ?? '', $config);
+    $byMaster = vfl_is_master(vfl_user_from_token($db, vfl_token_from_request()));
+    if (!$byPin && !$byMaster) {
+      vfl_json(403, ['ok' => false, 'error' => 'master required']);
     }
     $uid = (int)($data['userId'] ?? $data['id'] ?? 0);
     $role = trim((string)($data['role'] ?? ''));
-    if (!in_array($role, ['learner', 'operator'], true)) {
-      throw new Exception('role must be learner or operator');
+    if (!in_array($role, ['learner', 'operator', 'master'], true)) {
+      throw new Exception('role must be learner, operator or master');
+    }
+    // 마스터 지정·해제는 마스터 PIN 으로만 한다
+    if ($role === 'master' && !$byPin) {
+      vfl_json(403, ['ok' => false, 'error' => '마스터 지정은 마스터 PIN 으로만 할 수 있습니다']);
     }
     $st = $db->prepare("SELECT * FROM users WHERE id = ?");
     $st->execute([$uid]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     if (!$row) throw new Exception('회원을 찾을 수 없습니다');
+    if (($row['role'] ?? '') === 'master' && !$byPin) {
+      vfl_json(403, ['ok' => false, 'error' => '마스터 계정은 마스터 PIN 으로만 바꿀 수 있습니다']);
+    }
     if ($role === 'operator' && ($row['status'] ?: 'active') !== 'active') {
       throw new Exception('활성 회원만 운영자로 임명할 수 있습니다');
     }
