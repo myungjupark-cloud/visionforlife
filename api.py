@@ -154,7 +154,7 @@ def load_config() -> dict:
 
     except (OSError, json.JSONDecodeError):
 
-        return {"adminPin": "4464572"}
+        return {"adminPin": ""}
 
 
 
@@ -272,8 +272,8 @@ def verify_admin_pin(data: dict, handler: SimpleHTTPRequestHandler | None = None
     if handler and _is_localhost(handler):
         return True
     pin = str(data.get("pin", "")).strip()
-    expected = str(load_config().get("adminPin", "4464572")).strip()
-    return pin == expected
+    expected = str(load_config().get("adminPin", "")).strip()
+    return bool(expected) and pin == expected
 
 
 def _is_localhost(handler: SimpleHTTPRequestHandler) -> bool:
@@ -297,8 +297,8 @@ def admin_pin_ok(handler: SimpleHTTPRequestHandler, pin: str) -> bool:
         return True
     if _is_localhost(handler):
         return True
-    expected = str(load_config().get("adminPin", "4464572")).strip()
-    return str(pin or "").strip() == expected
+    expected = str(load_config().get("adminPin", "")).strip()
+    return bool(expected) and str(pin or "").strip() == expected
 
 
 def current_user(handler: SimpleHTTPRequestHandler) -> dict | None:
@@ -1304,7 +1304,7 @@ class 진리서재Handler(SimpleHTTPRequestHandler):
             if not _is_localhost(self):
                 send_json(self, 403, {"ok": False, "error": "local only"})
                 return
-            pin = str(load_config().get("adminPin", "4464572")).strip()
+            pin = str(load_config().get("adminPin", "")).strip()
             send_json(self, 200, {"ok": True, "pin": pin})
             return
 
@@ -1388,9 +1388,9 @@ class 진리서재Handler(SimpleHTTPRequestHandler):
 
             pin = str(data.get("pin", "")).strip()
 
-            expected = str(load_config().get("adminPin", "4464572")).strip()
+            expected = str(load_config().get("adminPin", "")).strip()
 
-            send_json(self, 200, {"ok": pin == expected})
+            send_json(self, 200, {"ok": bool(expected) and pin == expected})
 
             return
 

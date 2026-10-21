@@ -30,7 +30,7 @@ define('VFL_SESSION_DAYS', 30);
 define('VFL_PBKDF2_ITERS', 120000);
 
 $config = [
-  'adminPin' => '4464572',
+  'adminPin' => '',
   'adminPinRequired' => true,
 ];
 if (is_file(VFL_ROOT . '/api.config.php')) {
@@ -224,6 +224,8 @@ function vfl_is_localhost() {
 function vfl_pin_ok($pin, $config) {
   if (empty($config['adminPinRequired'])) return true;
   if (vfl_is_localhost()) return true;
+  // PIN 이 설정되어 있지 않으면(빈 값) 누구도 통과시키지 않는다
+  if (trim((string)($config['adminPin'] ?? '')) === '') return false;
   return trim((string)$pin) === trim((string)$config['adminPin']);
 }
 

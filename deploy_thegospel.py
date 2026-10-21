@@ -151,15 +151,18 @@ def upload_files(files: list[str]) -> dict:
 def sync_api_config() -> None:
     """Write api.config.php from config.local.json adminPin before deploy."""
     cfg_path = ROOT / "config.local.json"
-    pin = "4464572"
+    pin = ""
     required = True
     if cfg_path.is_file():
         try:
-            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-            pin = str(cfg.get("adminPin") or pin)
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8-sig"))
+            pin = str(cfg.get("adminPin") or "")
             required = bool(cfg.get("adminPinRequired", True))
         except (OSError, json.JSONDecodeError):
             pass
+    if not pin:
+        # 코드에 기본 PIN 을 두지 않는다(공개 저장소). 설정 파일에 없으면 배포를 멈춘다.
+        raise SystemExit("config.local.json 에 adminPin 이 없습니다. 배포를 멈춥니다.")
     pin_js = json.dumps(pin, ensure_ascii=False)
     required_js = "true" if required else "false"
     content = (
