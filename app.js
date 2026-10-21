@@ -1136,15 +1136,16 @@
         if (u.status === "pending") {
           actions.push('<button type="button" class="btn btn-sm btn-primary admin-user-action" data-action="approve" data-user-id="' + u.id + '">승인</button>');
         }
-        if (u.status !== "disabled") {
+        var lockedOperator = u.role === "operator" && !showRole;
+        if (u.status !== "disabled" && !lockedOperator) {
           actions.push('<button type="button" class="btn btn-sm btn-danger admin-user-action" data-action="disable" data-user-id="' + u.id + '">강퇴</button>');
         }
         if (u.status === "disabled") {
           actions.push('<button type="button" class="btn btn-sm btn-primary admin-user-action" data-action="approve" data-user-id="' + u.id + '">복구</button>');
         }
-        actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="rename" data-user-id="' + u.id + '" data-user-name="' + esc(u.name || "") + '">이름</button>');
+        if (!lockedOperator) actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="rename" data-user-id="' + u.id + '" data-user-name="' + esc(u.name || "") + '">이름</button>');
         actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="message" data-user-id="' + u.id + '">안내</button>');
-        if (showRole || u.role !== "operator") {
+        if (!lockedOperator) {
           actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="reset-password" data-user-id="' + u.id + '">비밀번호</button>');
         }
         if (showRole && u.status === "active") {

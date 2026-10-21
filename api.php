@@ -239,6 +239,17 @@ function vfl_require_pin_or_operator(PDO $db, $config, $data = [], $pinQuery = '
   return [false, null, false];
 }
 
+// 운영자 계정(강퇴·이름·비밀번호)은 메인 운영자(PIN)만 건드릴 수 있다
+function vfl_deny_operator_target(PDO $db, $uid, $isMain) {
+  if ($isMain) return;
+  $st = $db->prepare("SELECT role FROM users WHERE id = ?");
+  $st->execute([$uid]);
+  $role = $st->fetchColumn();
+  if ($role === 'operator') {
+    vfl_json(403, ['ok' => false, 'error' => '운영자 계정은 메인 운영자만 바꿀 수 있습니다']);
+  }
+}
+
 function vfl_progress_payload(PDO $db, $userId, $slug) {
   $st = $db->prepare("SELECT node_id, status, updated_at FROM user_progress
     WHERE user_id = ? AND course_slug = ? ORDER BY updated_at ASC");
@@ -538,9 +549,10 @@ try {
   }
 
   if ($method === 'POST' && $path === '/api/admin/users/disable') {
-    list($ok) = vfl_require_pin_or_operator($db, $config, $data);
+    list($ok, , $isMain) = vfl_require_pin_or_operator($db, $config, $data);
     if (!$ok) vfl_json(403, ['ok' => false, 'error' => 'admin or operator required']);
     $uid = (int)($data['userId'] ?? $data['id'] ?? 0);
+    vfl_deny_operator_target($db, $uid, $isMain);
     $db->prepare("UPDATE users SET status = 'disabled' WHERE id = ?")->execute([$uid]);
     $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$uid]);
     $st = $db->prepare("SELECT * FROM users WHERE id = ?");
@@ -591,9 +603,10 @@ try {
   }
 
   if ($method === 'POST' && $path === '/api/admin/users/update-name') {
-    list($ok) = vfl_require_pin_or_operator($db, $config, $data);
+    list($ok, , $isMain) = vfl_require_pin_or_operator($db, $config, $data);
     if (!$ok) vfl_json(403, ['ok' => false, 'error' => 'admin or operator required']);
     $uid = (int)($data['userId'] ?? $data['id'] ?? 0);
+    vfl_deny_operator_target($db, $uid, $isMain);
     $name = trim((string)($data['name'] ?? ''));
     if ($name === '') throw new Exception('이름을 입력하세요');
     if (mb_strlen($name, 'UTF-8') > 40) throw new Exception('이름은 40자 이하여야 합니다');
@@ -616,10 +629,7 @@ try {
     $st->execute([$uid]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     if (!$row) throw new Exception('회원을 찾을 수 없습니다');
-    // 운영자 비밀번호는 메인 운영자(PIN)만 바꿀 수 있다
-    if (($row['role'] ?? '') === 'operator' && !$isMain) {
-      vfl_json(403, ['ok' => false, 'error' => '운영자 비밀번호는 메인 운영자만 바꿀 수 있습니다']);
-    }
+    vfl_deny_operator_target($db, $uid, $isMain);
     $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
       ->execute([vfl_hash_password($password), $uid]);
     $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$uid]);
