@@ -5738,6 +5738,174 @@
     });
   }
 
+  /* 기기별 설치 안내 화면. 운영마스터 기준판(찬송가 c.html, 2026-10-21)의 판별·글을 옮겼다.
+     - 아이패드 사파리는 UA 가 맥이라 터치 개수로 가른다(isIPad). 아이패드 갈래가 브라우저 갈래보다 앞.
+     - 아이패드 크롬·엣지·웨일에는 '홈 화면에 추가' 가 없다 → 주소 복사 → 사파리. */
+  function openInstallGuide() {
+    var ua = navigator.userAgent || "";
+    var touch = navigator.maxTouchPoints || 0;
+    var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    var isIPad = /iPad/.test(ua) || (/Macintosh/.test(ua) && touch > 1);
+    var isIOSdev = isIOS || isIPad;
+    var iosChrome = /CriOS/.test(ua);
+    var iosOther = /FxiOS|EdgiOS|Whale|OPT\//i.test(ua);
+    var isAndroid = /Android/i.test(ua);
+    var isSamsung = /SamsungBrowser/i.test(ua);
+    var isWhale = /Whale/i.test(ua);
+    var isDesktop = !/Android|iPhone|iPad|iPod|Mobile|Silk/i.test(ua);
+    var isMacSafari = isDesktop && /Macintosh/.test(ua) && !isIPad && /Safari\//.test(ua) &&
+      !/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS|Whale|SamsungBrowser|Vivaldi/i.test(ua);
+    var isFirefoxDesk = isDesktop && /Firefox\//.test(ua);
+    var isEdge = /Edg\//.test(ua);
+
+    var ICO_SHARE = '<span class="pwa-guide__ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg></span>';
+    var ICO_DOTS = '<span class="pwa-guide__ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="25" height="25" fill="currentColor"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg></span>';
+
+    var n = 0;
+    function step(html) {
+      n += 1;
+      return '<div class="pwa-guide__step"><div class="pwa-guide__num">' + n + '</div><div class="pwa-guide__txt">' + html + "</div></div>";
+    }
+    function sm(html) { return '<span class="pwa-guide__sm">' + html + "</span>"; }
+
+    var title = "진리서재 앱 설치 방법";
+    var lead = "";
+    var steps = "";
+    var check = "";
+    var keep = "";
+    var note = "";
+    var copyBtn = '<button type="button" class="pwa-guide__copy" id="pwa-guide-copy">주소 복사</button>';
+
+    if (isMacSafari) {
+      lead = "맥의 <b>사파리</b>는 설치 단추를 자동으로 띄울 수 없습니다.<br>아래 순서대로 하면 Dock 에 아이콘이 생깁니다.";
+      steps += step("화면 <b>맨 위 메뉴 막대</b>에서 <b>파일</b>을 누릅니다");
+      steps += step("<b>Dock에 추가…</b> 를 선택합니다");
+      steps += step("이름을 확인하고 <b>추가</b>를 누르면 Dock 에 아이콘이 생깁니다");
+      note = "파일 메뉴에 <b>Dock에 추가…</b> 가 없으면 macOS 14(소노마) 이전입니다.<br>그때는 <b>크롬</b>으로 이 주소를 열어 설치해 주세요.";
+      keep = "<b>Dock 의 아이콘으로만 여세요.</b><br>이미 아이콘이 있으면 새로 추가하지 말고 그 아이콘으로 여세요.";
+    } else if (isIPad) {
+      if (iosChrome || iosOther) {
+        lead = "아이패드는 <b>" + (iosChrome ? "크롬" : "이 브라우저") + "에서 홈 화면에 추가가 되지 않습니다.</b><br><b>사파리</b>로 옮겨서 아래 순서대로 해 주세요.";
+        steps += step("아래 <b>주소 복사</b>를 누릅니다<br>" + copyBtn);
+        steps += step("<b>사파리</b>를 열고 주소창에 복사한 주소를 <b>붙여 넣어</b> 엽니다" + sm("주소창을 길게 누르면 <b>붙여넣고 이동</b>이 나옵니다."));
+      } else {
+        lead = "아이패드는 <b>애플 정책상 자동 설치가 되지 않습니다.</b><br>아래 순서대로 누르면 홈 화면에 아이콘이 생깁니다.";
+      }
+      steps += step("사파리 <b>맨 위</b> " + ICO_SHARE + " (네모에 위쪽 화살표)를 누릅니다" + sm("안 보이면 주소창 오른쪽의 " + ICO_DOTS + " 안에 있습니다."));
+      steps += step("나타난 창의 <b>맨 오른쪽 아래 더 보기</b>를 누릅니다");
+      steps += step("<b>홈 화면에 추가</b>를 누르고 <b>오른쪽 위 추가</b>를 누릅니다");
+      steps += step("홈 화면에 생긴 <b>아이콘</b>으로 엽니다");
+      note = "아이패드는 <b>사파리</b>에서만 홈 화면에 추가가 됩니다.";
+      check = "사파리 <b>주소창이 어두운 색</b>이거나 <b>비공개</b>라고 보이면 <b>개인정보 보호 모드</b>입니다.<br><b>오른쪽 위 네모 네 개(탭 모음)</b>를 눌러 <b>일반 탭</b>으로 바꾼 뒤 이 주소를 다시 여세요.";
+    } else if (isIOS) {
+      lead = "아이폰은 <b>애플 정책상 자동 설치가 되지 않습니다.</b><br>아래 순서대로 누르면 홈 화면에 아이콘이 생깁니다.";
+      if (iosChrome) {
+        steps += step("화면 <b>오른쪽 아래</b> " + ICO_DOTS + " <b>점 세 개</b>를 누릅니다");
+        steps += step(ICO_SHARE + " <b>공유</b>를 누릅니다");
+        note = "점 세 개가 안 보이면 화면을 한 번 <b>아래로 쓸어내려</b> 주세요.<br>잘 되지 않으면 <b>사파리</b>로 이 주소를 열어 보세요.";
+        check = "화면이 <b>어두운 색</b>이면 <b>시크릿(비공개) 모드</b>입니다.<br>시크릿 탭을 닫고 <b>일반 탭</b>에서 이 주소를 다시 여세요.";
+      } else if (iosOther) {
+        steps += step("브라우저 메뉴에서 " + ICO_SHARE + " <b>공유</b>를 누릅니다");
+        note = "잘 되지 않으면 <b>사파리</b>로 이 주소를 열어 보세요.";
+        check = "화면이 <b>어두운 색</b>이면 <b>시크릿(비공개) 모드</b>입니다.<br>시크릿 탭을 닫고 <b>일반 탭</b>에서 이 주소를 다시 여세요.";
+      } else {
+        steps += step("화면 <b>맨 아래 오른쪽</b> " + ICO_DOTS + " <b>점 세 개</b>를 누르고 " + ICO_SHARE + " <b>공유</b>를 누릅니다" + sm("공유 " + ICO_SHARE + " 가 아래 줄에 바로 보이면 점 세 개는 건너뛰고 그것을 누르세요."));
+        note = "아래 줄이 안 보이면 화면을 한 번 <b>아래로 쓸어내리면</b> 나타납니다.";
+        check = "사파리 <b>아래 줄이 어두운 색</b>이거나 <b>비공개</b>라고 보이면 <b>개인정보 보호 모드</b>입니다.<br><b>오른쪽 아래 네모 두 개</b>를 눌러 <b>일반 탭</b>으로 바꾼 뒤 이 주소를 다시 여세요.";
+      }
+      steps += step("목록을 <b>위로 올려</b> <b>홈 화면에 추가</b>를 누릅니다");
+      steps += step("<b>오른쪽 위 추가</b>를 누르면 홈 화면에 아이콘이 생깁니다");
+    } else if (isAndroid) {
+      lead = "안드로이드는 아래 순서로 설치합니다.";
+      if (isSamsung) {
+        steps += step("삼성 인터넷 <b>아래 메뉴(≡)</b>를 누릅니다");
+        steps += step("<b>현재 페이지 추가</b> → <b>홈 화면</b>(또는 <b>홈 화면에 추가</b>)을 선택합니다");
+      } else if (isWhale) {
+        steps += step("웨일 <b>메뉴(≡)</b> 또는 오른쪽 위 " + ICO_DOTS + " 를 누릅니다");
+        steps += step("<b>홈 화면에 추가</b>(또는 <b>앱 설치</b>)를 선택합니다");
+        note = "메뉴에 없으면 <b>크롬</b>으로 이 주소를 열어 주세요.";
+      } else {
+        steps += step("크롬 <b>오른쪽 위</b> <b>⋮</b> (점 세 개)를 누릅니다");
+        steps += step("<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 선택합니다");
+      }
+      steps += step("나타난 창에서 <b>설치</b>(또는 <b>추가</b>)를 누릅니다");
+      steps += step("설치가 끝날 때까지 몇 초 기다린 뒤, 홈 화면의 <b>아이콘</b>으로 엽니다");
+      note = (note ? note + "<br>" : "") + "카카오톡 등 <b>앱 안에서 연 화면</b>에서는 설치가 되지 않습니다. <b>크롬</b>이나 <b>삼성 인터넷</b>으로 이 주소를 여세요.";
+    } else {
+      /* 윈도우·맥(크롬·엣지 등)·리눅스 */
+      if (isFirefoxDesk) {
+        lead = "파이어폭스는 앱 설치를 지원하지 않습니다.<br><b>크롬</b>이나 <b>엣지</b>로 이 주소를 열어 설치해 주세요.";
+        steps += step("아래 <b>주소 복사</b>를 누릅니다<br>" + copyBtn);
+        steps += step("<b>크롬</b> 또는 <b>엣지</b>를 열고 주소창에 붙여 넣어 이동합니다");
+      } else {
+        lead = "컴퓨터에서는 아래 순서로 설치합니다.";
+        steps += step("주소창 <b>오른쪽 끝</b>의 <b>설치 아이콘</b>(모니터에 아래 화살표)을 누릅니다");
+        steps += step("보이지 않으면 오른쪽 위 <b>⋮</b>(" + (isEdge ? "엣지는 <b>…</b>" : "크롬") + ") → <b>" + (isEdge ? "앱 → 이 사이트를 앱으로 설치" : "캐스트, 저장 및 공유 → 페이지를 앱으로 설치") + "</b>");
+        steps += step("<b>설치</b>를 누르면 시작 메뉴나 바탕화면에 아이콘이 생깁니다");
+        note = "이미 설치되어 있으면 설치 아이콘이 나타나지 않습니다.<br>바탕화면 아이콘이 없으면 주소창에 <b>chrome://apps</b> 를 열어 진리서재를 <b>오른쪽 클릭 → 바로가기 만들기</b>를 하세요.";
+      }
+    }
+
+    /* 설치한 뒤 주의. 아이폰·아이패드·맥 사파리는 설치된 앱과 브라우저가 저장 공간을 따로 쓴다. */
+    if (isIOSdev) {
+      keep = "<b>홈 화면의 아이콘으로만 여세요.</b><br>이미 아이콘이 있으면 새로 추가하지 말고 그 아이콘으로 여세요.<br>" +
+        "홈 화면 앱은 사파리와 저장 공간이 따로라서, <b>처음 열 때 로그인을 한 번 더</b> 해야 할 수 있습니다.";
+    } else if (isMacSafari) {
+      keep += "<br>Dock 앱을 처음 열 때 <b>로그인을 한 번 더</b> 해야 할 수 있습니다.";
+    }
+
+    var old = document.getElementById("pwa-guide-overlay");
+    if (old) old.remove();
+    var ov = document.createElement("div");
+    ov.id = "pwa-guide-overlay";
+    ov.className = "pwa-guide";
+    ov.setAttribute("role", "dialog");
+    ov.setAttribute("aria-modal", "true");
+    ov.innerHTML =
+      '<div class="pwa-guide__panel">' +
+      '<button type="button" class="pwa-guide__close" id="pwa-guide-close" aria-label="닫기">×</button>' +
+      '<h2 class="pwa-guide__title">' + title + "</h2>" +
+      '<p class="pwa-guide__lead">' + lead + "</p>" +
+      (check ? '<div class="pwa-guide__box pwa-guide__box--check"><span class="pwa-guide__box-t">먼저 확인하세요</span>' + check +
+        sm("이 모드에서는 닫을 때마다 로그인 정보가 지워집니다.") + "</div>" : "") +
+      steps +
+      (note ? '<p class="pwa-guide__note">' + note + "</p>" : "") +
+      (keep ? '<div class="pwa-guide__box pwa-guide__box--keep"><span class="pwa-guide__box-t">설치한 뒤에는</span>' + keep + "</div>" : "") +
+      '<button type="button" class="pwa-guide__done" id="pwa-guide-done">닫기</button>' +
+      "</div>";
+    document.body.appendChild(ov);
+
+    function close() { ov.remove(); }
+    ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
+    document.getElementById("pwa-guide-close").addEventListener("click", close);
+    document.getElementById("pwa-guide-done").addEventListener("click", close);
+    var cb = document.getElementById("pwa-guide-copy");
+    if (cb) {
+      cb.addEventListener("click", function () {
+        var url = location.origin + location.pathname;
+        var ok = function () { cb.textContent = "복사됨 — 이제 다른 브라우저를 여세요"; };
+        /* 복사 허락이 거부되면 옛 방식으로 넘어간다 — 반응 없이 끝나지 않게 */
+        var legacy = function () {
+          try {
+            var t = document.createElement("textarea");
+            t.value = url; t.style.position = "fixed"; t.style.opacity = "0";
+            document.body.appendChild(t); t.select();
+            document.execCommand("copy");
+            document.body.removeChild(t);
+            ok();
+          } catch (err) {}
+        };
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(ok, legacy);
+            return;
+          }
+        } catch (err) {}
+        legacy();
+      });
+    }
+  }
+
   function initPwaInstallBar() {
     var ua = navigator.userAgent || "";
     var deferredPrompt = null;
@@ -5762,7 +5930,7 @@
       '<button type="button" class="pwa-install-bar__close" aria-label="닫기" id="pwa-install-close">×</button>' +
       '<div class="pwa-install-bar__title">진리서재 앱 설치</div>' +
       '<div id="pwa-install-btn-wrap" class="pwa-install-bar__btn-wrap is-visible">' +
-      '<button type="button" id="pwa-install-btn" class="pwa-install-bar__install">홈 화면에 추가하는 방법</button>' +
+      '<button type="button" id="pwa-install-btn" class="pwa-install-bar__install">설치 방법 자세히 보기</button>' +
       "</div>" +
       '<div id="pwa-install-msg" class="pwa-install-bar__msg"></div>';
     document.body.appendChild(bar);
@@ -5771,40 +5939,14 @@
     var btnWrap = document.getElementById("pwa-install-btn-wrap");
     var btn = document.getElementById("pwa-install-btn");
     var waitGuide = "설치가 완료될 때까지 잠시 기다려 주세요.";
-    var guideExpanded = false;
-
-    function manualGuideHtml() {
-      if (isIOS) {
-        return "Safari 하단 <b>공유(⬆︎)</b> → <b>홈 화면에 추가</b>를 누르세요.<br>" + waitGuide;
-      }
-      if (isWhale) {
-        return "아래에 설치하기 버튼이 보이지 않으면<br>" +
-          "하단 메뉴(≡) 또는 오른쪽 위 <b>⋮</b> → <b>홈 화면에 추가</b>(또는 앱 설치)를 선택하세요.<br>" +
-          "안 보이면 <b>Chrome</b>으로 이 주소를 열어 주세요.<br>" + waitGuide;
-      }
-      if (isSamsung) {
-        return "아래에 설치하기 버튼이 보이지 않으면<br>" +
-          "삼성 인터넷 하단 메뉴 → <b>홈 화면에 추가</b>를 선택하세요.<br>" + waitGuide;
-      }
-      if (isAndroid) {
-        return "아래에 설치하기 버튼이 보이지 않으면<br>" +
-          "브라우저 오른쪽 위 <b>⋮</b> → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 선택하세요.<br>" +
-          "그래도 안 되면 Chrome으로 열어 주세요.<br>" + waitGuide;
-      }
-      return "아래에 설치하기 버튼이 보이지 않으면<br>" +
-        "브라우저 메뉴에서 <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 선택하세요.<br>" + waitGuide;
-    }
 
     function shortHintHtml() {
-      if (isIOS) return "위 버튼을 눌러 설치 방법을 확인하세요.";
-      if (isWhale) return "웨일 브라우저입니다. 위 버튼을 눌러 홈 화면 추가 방법을 확인하세요.";
-      return "위 버튼을 눌러 설치하거나, 방법을 확인하세요.";
+      return "누르면 내 기기(아이폰·아이패드·안드로이드·컴퓨터)에 맞는 설치 순서를 보여 드립니다.";
     }
 
     function setManualMode() {
-      if (btn) btn.textContent = "홈 화면에 추가하는 방법";
+      if (btn) btn.textContent = "설치 방법 자세히 보기";
       if (msg) msg.innerHTML = shortHintHtml();
-      guideExpanded = false;
     }
 
     function setPromptMode() {
@@ -5830,9 +5972,7 @@
           });
           return;
         }
-        guideExpanded = !guideExpanded;
-        if (msg) msg.innerHTML = guideExpanded ? manualGuideHtml() : shortHintHtml();
-        if (btn) btn.textContent = guideExpanded ? "안내 접기" : "홈 화면에 추가하는 방법";
+        openInstallGuide();
       });
     }
 
