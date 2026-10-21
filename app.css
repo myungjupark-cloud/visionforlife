@@ -2138,6 +2138,25 @@ html[data-theme="dark"] .focus-complete-btn.is-done {
   cursor: pointer;
 }
 
+/* 내 계정 창 (설치 안내 창과 같은 틀을 쓴다) */
+.acct-form { margin-top: 12px; }
+.acct-form label { display: block; margin-top: 10px; font-size: 15px; color: var(--text-muted); }
+.acct-form input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+}
+.acct-msg { min-height: 1.4em; margin-top: 10px; font-size: 15px; line-height: 1.6; color: var(--text); }
+.acct-msg.is-bad { color: var(--danger); font-weight: 700; }
+.acct-logout { display: block; width: 100%; margin-top: 12px; }
+
 /* Scripture citation popup (learner) */
 .focus-desc .scr-ref,
 .aside-overlay__body .scr-ref {

@@ -1148,6 +1148,9 @@
         }
         if (u.status === "disabled") {
           actions.push('<button type="button" class="btn btn-sm btn-primary admin-user-action" data-action="approve" data-user-id="' + u.id + '">복구</button>');
+          if (showRole && u.role === "learner") {
+            actions.push('<button type="button" class="btn btn-sm btn-danger admin-user-action" data-action="delete" data-user-id="' + u.id + '" data-user-name="' + esc(u.name || "") + '">삭제</button>');
+          }
         }
         if (!lockedOperator) actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="rename" data-user-id="' + u.id + '" data-user-name="' + esc(u.name || "") + '">이름</button>');
         actions.push('<button type="button" class="btn btn-sm admin-user-action" data-action="message" data-user-id="' + u.id + '">안내</button>');
@@ -1237,6 +1240,21 @@
             return;
           }
           toast("회원을 강퇴했습니다");
+          refreshAdminUsersList();
+        })
+        .catch(function () { toast("서버 연결 실패"); });
+      return;
+    }
+    if (action === "delete") {
+      var delName = currentName || "이 회원";
+      if (!window.confirm(delName + " 님을 목록에서 완전히 삭제할까요?\n진도 기록도 함께 지워지고 되돌릴 수 없습니다.")) return;
+      postAdminMember("/api/admin/users/delete", { userId: userId })
+        .then(function (result) {
+          if (!result.ok || !result.data.ok) {
+            toast((result.data && result.data.error) || "삭제 실패");
+            return;
+          }
+          toast("회원을 삭제했습니다");
           refreshAdminUsersList();
         })
         .catch(function () { toast("서버 연결 실패"); });
@@ -1692,7 +1710,7 @@
       els.btnAccount.hidden = false;
       var label = state.user.name || state.user.phone || state.user.email || "회원";
       els.btnAccount.textContent = label;
-      els.btnAccount.title = "로그아웃";
+      els.btnAccount.title = "내 계정";
     } else if (state.authRequired === false) {
       els.btnAccount.hidden = true;
     } else {
@@ -1999,10 +2017,86 @@
       });
   }
 
+  // 내 계정: 본인 비밀번호 바꾸기·로그아웃. (이름 단추를 눌렀을 때 바로 로그아웃되지 않게 한다.)
+  function openAccountDialog() {
+    if (!state.user) return;
+    var old = document.getElementById("account-overlay");
+    if (old) old.remove();
+    var who = state.user.name || "회원";
+    var phone = state.user.phone || state.user.email || "";
+    var ov = document.createElement("div");
+    ov.id = "account-overlay";
+    ov.className = "pwa-guide";
+    ov.setAttribute("role", "dialog");
+    ov.setAttribute("aria-modal", "true");
+    ov.innerHTML =
+      '<div class="pwa-guide__panel">' +
+      '<button type="button" class="pwa-guide__close" id="acct-close" aria-label="닫기">×</button>' +
+      '<h2 class="pwa-guide__title">내 계정</h2>' +
+      '<p class="pwa-guide__lead"><b>' + esc(who) + "</b><br>" + esc(phone) + " · " + esc(roleLabel(state.user.role)) + "</p>" +
+      '<button type="button" class="pwa-guide__done" id="acct-pw-toggle">비밀번호 바꾸기</button>' +
+      '<form id="acct-pw-form" class="acct-form" hidden autocomplete="off">' +
+      '<label>현재 비밀번호<input type="password" id="acct-cur" autocomplete="current-password"></label>' +
+      '<label>새 비밀번호 (6자 이상)<input type="password" id="acct-new" autocomplete="new-password"></label>' +
+      '<label>새 비밀번호 한 번 더<input type="password" id="acct-new2" autocomplete="new-password"></label>' +
+      '<div class="acct-msg" id="acct-msg" role="status" aria-live="polite"></div>' +
+      '<button type="submit" class="pwa-guide__done" id="acct-pw-save">바꾸기</button>' +
+      "</form>" +
+      '<button type="button" class="pwa-guide__copy acct-logout" id="acct-logout">로그아웃</button>' +
+      "</div>";
+    document.body.appendChild(ov);
+
+    function close() { ov.remove(); }
+    function msg(t, bad) {
+      var m = document.getElementById("acct-msg");
+      m.textContent = t || "";
+      m.className = "acct-msg" + (bad ? " is-bad" : "");
+    }
+    ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
+    document.getElementById("acct-close").addEventListener("click", close);
+    document.getElementById("acct-logout").addEventListener("click", function () { close(); logoutUser(); });
+    document.getElementById("acct-pw-toggle").addEventListener("click", function () {
+      var f = document.getElementById("acct-pw-form");
+      f.hidden = !f.hidden;
+      if (!f.hidden) document.getElementById("acct-cur").focus();
+    });
+    document.getElementById("acct-pw-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var cur = document.getElementById("acct-cur").value;
+      var n1 = document.getElementById("acct-new").value;
+      var n2 = document.getElementById("acct-new2").value;
+      if (!cur) { msg("현재 비밀번호를 넣어 주세요.", true); return; }
+      if (n1.length < 6) { msg("새 비밀번호는 6자 이상이어야 합니다.", true); return; }
+      if (n1 !== n2) { msg("새 비밀번호가 서로 다릅니다.", true); return; }
+      var save = document.getElementById("acct-pw-save");
+      save.disabled = true;
+      authFetch(apiUrl("/api/auth/change-password"), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: cur, newPassword: n1 })
+      })
+        .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+        .then(function (result) {
+          save.disabled = false;
+          if (!result.ok || !result.data.ok) {
+            msg((result.data && result.data.error) || "바꾸지 못했습니다.", true);
+            return;
+          }
+          msg("비밀번호를 바꿨습니다. 다음 로그인부터 새 비밀번호를 쓰세요.", false);
+          document.getElementById("acct-cur").value = "";
+          document.getElementById("acct-new").value = "";
+          document.getElementById("acct-new2").value = "";
+          save.hidden = true;
+        })
+        .catch(function () { save.disabled = false; msg("서버에 연결하지 못했습니다.", true); });
+    });
+  }
+
   function initAuth() {
     if (!els.btnAccount) return;
     els.btnAccount.addEventListener("click", function () {
-      if (state.user) logoutUser();
+      if (state.user) openAccountDialog();
       else openAuthOverlay("login");
     });
     if (els.btnMemberAdmin) {

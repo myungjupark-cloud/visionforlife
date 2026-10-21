@@ -64,6 +64,7 @@ from auth_store import (
     update_user_goals,
     update_user_name,
     reset_user_password,
+    change_own_password,
     get_user_by_id,
     upsert_operator_message,
     upsert_progress,
@@ -1477,6 +1478,29 @@ class 진리서재Handler(SimpleHTTPRequestHandler):
                 send_json(self, 400, {"ok": False, "error": str(exc)})
                 return
             send_json(self, 200, {"ok": True, "user": updated})
+            return
+
+        if path == "/api/auth/change-password":
+            token = session_token_from_handler(self)
+            user = user_from_token(token)
+            if not user:
+                send_json(self, 401, {"ok": False, "error": "login required"})
+                return
+            data = read_json_body(self)
+            try:
+                change_own_password(
+                    user["id"],
+                    str(data.get("currentPassword") or ""),
+                    str(data.get("newPassword") or ""),
+                    str(token or ""),
+                )
+            except PermissionError as exc:
+                send_json(self, 403, {"ok": False, "error": str(exc)})
+                return
+            except ValueError as exc:
+                send_json(self, 400, {"ok": False, "error": str(exc)})
+                return
+            send_json(self, 200, {"ok": True})
             return
 
         if path == "/api/auth/notice/read":

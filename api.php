@@ -525,6 +525,27 @@ try {
     vfl_json(200, ['ok' => true], vfl_clear_cookie());
   }
 
+  if ($method === 'POST' && $path === '/api/auth/change-password') {
+    $token = vfl_token_from_request();
+    $me = vfl_user_from_token($db, $token);
+    if (!$me) vfl_json(401, ['ok' => false, 'error' => 'login required']);
+    $current = (string)($data['currentPassword'] ?? '');
+    $next = (string)($data['newPassword'] ?? '');
+    if (strlen($next) < 6) throw new Exception('새 비밀번호는 6자 이상이어야 합니다');
+    $st = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $st->execute([(int)$me['id']]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$row || !vfl_verify_password($current, $row['password_hash'])) {
+      vfl_json(403, ['ok' => false, 'error' => '현재 비밀번호가 맞지 않습니다']);
+    }
+    $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+      ->execute([vfl_hash_password($next), (int)$me['id']]);
+    // 다른 기기의 로그인은 끊고, 지금 쓰는 기기는 유지한다
+    $db->prepare("DELETE FROM sessions WHERE user_id = ? AND token <> ?")
+      ->execute([(int)$me['id'], (string)$token]);
+    vfl_json(200, ['ok' => true]);
+  }
+
   if ($method === 'POST' && $path === '/api/auth/goals') {
     $user = vfl_user_from_token($db, vfl_token_from_request());
     if (!$user) vfl_json(401, ['ok' => false, 'error' => 'login required']);
@@ -633,6 +654,26 @@ try {
     $db->prepare("UPDATE users SET name = ? WHERE id = ?")->execute([$name, $uid]);
     $st->execute([$uid]);
     vfl_json(200, ['ok' => true, 'user' => vfl_user_row($st->fetch(PDO::FETCH_ASSOC))]);
+  }
+
+  // 회원 영구 삭제 — 마스터만, 이미 강퇴된 일반 회원만. (운영자·마스터 계정은 지울 수 없다)
+  if ($method === 'POST' && $path === '/api/admin/users/delete') {
+    list($ok, , $isMain) = vfl_require_pin_or_operator($db, $config, $data);
+    if (!$ok || !$isMain) vfl_json(403, ['ok' => false, 'error' => 'master required']);
+    $uid = (int)($data['userId'] ?? $data['id'] ?? 0);
+    $st = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $st->execute([$uid]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$row) throw new Exception('회원을 찾을 수 없습니다');
+    if (($row['role'] ?? 'learner') !== 'learner') throw new Exception('운영자·마스터 계정은 삭제할 수 없습니다. 먼저 일반 회원으로 바꿔 주세요');
+    if (($row['status'] ?: 'active') !== 'disabled') throw new Exception('먼저 강퇴한 뒤에 삭제할 수 있습니다');
+    $db->beginTransaction();
+    $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$uid]);
+    $db->prepare("DELETE FROM user_progress WHERE user_id = ?")->execute([$uid]);
+    $db->prepare("DELETE FROM operator_messages WHERE user_id = ?")->execute([$uid]);
+    $db->prepare("DELETE FROM users WHERE id = ?")->execute([$uid]);
+    $db->commit();
+    vfl_json(200, ['ok' => true, 'deletedId' => $uid]);
   }
 
   if ($method === 'POST' && $path === '/api/admin/users/reset-password') {

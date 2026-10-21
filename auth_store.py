@@ -222,6 +222,17 @@ def logout_user(token: str | None) -> None:
         conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
 
 
+def change_own_password(user_id: int, current: str, new: str, keep_token: str = "") -> None:
+    if len(new or "") < 6:
+        raise ValueError("새 비밀번호는 6자 이상이어야 합니다")
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not row or not _verify_password(current or "", row["password_hash"]):
+            raise PermissionError("현재 비밀번호가 맞지 않습니다")
+        conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (_hash_password(new), user_id))
+        conn.execute("DELETE FROM sessions WHERE user_id = ? AND token <> ?", (user_id, keep_token or ""))
+
+
 def reset_user_password(user_id: int, password: str) -> dict[str, Any]:
     if len(password or "") < 6:
         raise ValueError("비밀번호는 6자 이상이어야 합니다")
