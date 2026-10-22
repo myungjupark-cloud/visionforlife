@@ -28,16 +28,72 @@
     {
       "slug": "life-study",
       "title": "생명공과",
-      "description": "성경의 진리를 짧고 깊게 탐구하는 놀라운 학습 과정",
+      "description": "성경의 진리를 짧고 깊게 탐구하는 놀라운 학습 과정- 함께 추구하기 좋습니다.",
       "order": 4,
-      "visibility": "public",
+      "visibility": "members",
+      "published": true
+    },
+    {
+      "slug": "shepherding-guide-96",
+      "title": "목양가이드96",
+      "description": "복음 전파와 유기적인 목양을 위한 가이드 — 6권 · 각 16과. 함께 추구하기 좋습니다.",
+      "order": 5,
+      "visibility": "members",
+      "published": true
+    },
+    {
+      "slug": "lords-recovery",
+      "title": "주님의 회복의 기본 항목과 그 결과",
+      "description": "생명·그 영·교회·왕국 — 주님의 회복의 기본과 그 결과 · 10과",
+      "order": 6,
+      "visibility": "members",
+      "published": true
+    },
+    {
+      "slug": "by-faith",
+      "title": "믿음으로 말미암아 살리라",
+      "description": "믿음으로 사는 그리스도인의 정상 생활 12과 - 혼자 추구하기 좋습니다.",
+      "order": 7,
+      "visibility": "members",
+      "published": true
+    },
+    {
+      "slug": "human-spirit",
+      "title": "사람의 영",
+      "description": "우리 사람의 영을 알고 훈련함 — 10과",
+      "order": 8,
+      "visibility": "members",
+      "published": true
+    },
+    {
+      "slug": "divine-romance",
+      "title": "신성한 로맨스",
+      "description": "하나님과 사람의 사랑 이야기 — 10과",
+      "order": 9,
+      "visibility": "members",
+      "published": true
+    },
+    {
+      "slug": "gods-economy",
+      "title": "하나님의 경륜",
+      "description": "하나님께서 그분 자신을 사람 안으로 분배하시는 경륜 — 24과",
+      "order": 10,
+      "visibility": "members",
+      "published": true
+    },
+    {
+      "slug": "truth-lessons",
+      "title": "진리공과",
+      "description": "위트니스 리의 《진리 공과》 1~4단계 16권 · 220과 — 성경의 기본 진리를 단계별로",
+      "order": 11,
+      "visibility": "members",
       "published": true
     },
     {
       "slug": "genesis",
       "title": "천지창조",
       "description": "창조의 목적을 이해하면 하나님과 사람에 대해 깊은 이해가 생깁니디.",
-      "order": 5,
+      "order": 12,
       "visibility": "private",
       "published": false
     },
@@ -45,7 +101,7 @@
       "slug": "human",
       "title": "사람의 존재에 대한 이해",
       "description": "영과 혼과 몸으로 이루어진 사람의 존제에 대한 이해",
-      "order": 6,
+      "order": 13,
       "visibility": "private",
       "published": false
     },
@@ -53,7 +109,7 @@
       "slug": "g2",
       "title": "창조의 정점, 사람",
       "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
-      "order": 7,
+      "order": 14,
       "visibility": "private",
       "published": false
     },
@@ -61,7 +117,7 @@
       "slug": "g3",
       "title": "창조와 사람",
       "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
-      "order": 8,
+      "order": 15,
       "visibility": "private",
       "published": false
     },
@@ -69,7 +125,7 @@
       "slug": "g4",
       "title": "창조과정",
       "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
-      "order": 9,
+      "order": 16,
       "visibility": "private",
       "published": false
     },
@@ -77,7 +133,7 @@
       "slug": "g5",
       "title": "창조의 과정 이해",
       "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
-      "order": 10,
+      "order": 17,
       "visibility": "private",
       "published": false
     },
@@ -85,17 +141,9 @@
       "slug": "g6",
       "title": "창조의 과정 이해2",
       "description": "창조 과정에 대한 자세한 설명을 통해 하나님과 사람을 더욱 깊이 이해하기",
-      "order": 11,
+      "order": 18,
       "visibility": "private",
       "published": false
-    },
-    {
-      "slug": "by-faith",
-      "title": "믿음으로 말미암아 살리라",
-      "description": "믿음으로 사는 그리스도인의 정상 생활 — 12과",
-      "order": 5,
-      "visibility": "public",
-      "published": true
     }
   ]
 }

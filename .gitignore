@@ -3,6 +3,7 @@ config.cloudflared.yml
 api.config.php
 data/truthlib.db
 __pycache__/
+.cache/
 *.pyc
 .DS_Store
 Thumbs.db
