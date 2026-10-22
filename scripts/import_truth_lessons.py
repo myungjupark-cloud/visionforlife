@@ -359,7 +359,11 @@ def main():
         d = OUT / "courses" / slug
         d.mkdir(parents=True, exist_ok=True)
         (d / "mindmap.json").write_text(json.dumps(mm, ensure_ascii=False, indent=2), encoding="utf-8")
-        courses.append({"slug": slug, "title": ctitle, "subtitle": sub, "description": desc,
+        # 권 카드에는 기호 없는 짧은 글(카드는 마크다운을 그리지 않는다). 자세한 안내는 권 첫 화면(root)에.
+        heads = [t.split(" - ")[0].split(" (")[0] for _, t, _ in lessons]
+        uniq = list(dict.fromkeys(heads))
+        card = f"제{first}~{last}과 · " + ", ".join(uniq[:4]) + (" 외" if len(uniq) > 4 else "")
+        courses.append({"slug": slug, "title": ctitle, "subtitle": sub, "description": card,
                         "order": len(courses) + 1, "createdAt": now})
         total += len(lessons)
         print(f"{slug}: {len(lessons)}과 (제{first}~{last}과)")
