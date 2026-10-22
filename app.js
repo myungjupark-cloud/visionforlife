@@ -2643,6 +2643,18 @@
     if (isLinearCourse() && parentId !== state.data.rootId) {
       var next = crossChildrenOf(parentId);
       if (next.length) return next;
+      // 과들이 모두 첫 화면 바로 아래에 나란히 있는 책(순서 연결이 없는 책)은
+      // 차례 순서대로 다음 과 하나를 보여 준다.
+      var own = childrenOf(parentId);
+      if (!own.length) {
+        var list = flatLessonCatalogList();
+        if (list) {
+          for (var li = 0; li < list.length - 1; li++) {
+            if (list[li].id === parentId) return [list[li + 1]];
+          }
+        }
+      }
+      return own;
     }
     return childrenOf(parentId);
   }
@@ -3749,7 +3761,8 @@
     if (id === state.data.rootId) {
       state.explored = [state.data.rootId];
     } else if (pushTrail !== false) {
-      if (isAtRoot() && isLinearCourse()) {
+      if (isLinearCourse()) {
+        // 순서대로 읽는 책: 경로는 늘 '홈 › 지금 과'(다음 과로 넘어가도 길어지지 않게)
         state.explored = buildExploredPath(id);
       } else if (isAtRoot()) {
         state.explored = [state.data.rootId, id];
