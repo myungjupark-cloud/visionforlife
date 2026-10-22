@@ -131,7 +131,12 @@ function vfl_normalize_phone($raw) {
   if (strlen($digits) === 10 && strpos($digits, '01') === 0) {
     return substr($digits, 0, 3) . '-' . substr($digits, 3, 3) . '-' . substr($digits, 6);
   }
-  throw new Exception('올바른 휴대폰 번호를 입력하세요 (예: 010-3193-4530)');
+  // 미국·캐나다 번호: 714-614-8242 (앞에 국가번호 1 이나 +1 을 붙여도 된다). 한국은 01 로 시작하므로 겹치지 않는다.
+  if (strlen($digits) === 11 && $digits[0] === '1') $digits = substr($digits, 1);
+  if (strlen($digits) === 10 && preg_match('/^[2-9]\d{2}[2-9]\d{6}$/', $digits)) {
+    return substr($digits, 0, 3) . '-' . substr($digits, 3, 3) . '-' . substr($digits, 6);
+  }
+  throw new Exception('올바른 전화번호를 입력하세요 (한국 예: 010-3193-4530 · 미국 예: 714-614-8242)');
 }
 
 function vfl_hash_password($password) {

@@ -133,7 +133,12 @@ def normalize_phone(raw: str) -> str:
         return f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
     if len(digits) == 10 and digits.startswith("01"):
         return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
-    raise ValueError("올바른 휴대폰 번호를 입력하세요 (예: 010-3193-4530)")
+    # 미국·캐나다 번호: 714-614-8242 (앞의 국가번호 1 은 떼어 낸다). 한국은 01 로 시작하므로 겹치지 않는다.
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) == 10 and digits[0] in "23456789" and digits[3] in "23456789":
+        return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+    raise ValueError("올바른 전화번호를 입력하세요 (한국 예: 010-3193-4530 · 미국 예: 714-614-8242)")
 
 
 def _user_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:

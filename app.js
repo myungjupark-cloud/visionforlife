@@ -1918,10 +1918,19 @@
   }
 
   function formatPhoneInput(raw) {
-    var digits = String(raw || "").replace(/\D/g, "").slice(0, 11);
+    var digits = String(raw || "").replace(/\D/g, "");
+    // 한국 번호는 01 로 시작(010-1234-5678). 그 밖은 미국·캐나다 형식(714-614-8242)으로 본다.
+    if (digits.indexOf("01") === 0) {
+      digits = digits.slice(0, 11);
+      if (digits.length <= 3) return digits;
+      if (digits.length <= 7) return digits.slice(0, 3) + "-" + digits.slice(3);
+      return digits.slice(0, 3) + "-" + digits.slice(3, 7) + "-" + digits.slice(7);
+    }
+    if (digits.length === 11 && digits.charAt(0) === "1") digits = digits.slice(1); // +1 국가번호
+    digits = digits.slice(0, 10);
     if (digits.length <= 3) return digits;
-    if (digits.length <= 7) return digits.slice(0, 3) + "-" + digits.slice(3);
-    return digits.slice(0, 3) + "-" + digits.slice(3, 7) + "-" + digits.slice(7);
+    if (digits.length <= 6) return digits.slice(0, 3) + "-" + digits.slice(3);
+    return digits.slice(0, 3) + "-" + digits.slice(3, 6) + "-" + digits.slice(6);
   }
 
   function openAuthOverlay(mode) {
