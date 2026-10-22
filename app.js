@@ -3719,7 +3719,8 @@
 
   function lessonAccessBlocked(id) {
     if (state.authRequired === false) return false;
-    if (state.user || state.admin || hasLocalSession()) return false;
+    // 마스터(admin PIN — 카탈로그 운영 모드 포함)는 모든 과를 본다
+    if (state.user || state.admin || state.adminCatalog || hasLocalSession()) return false;
     if (!state.data) return false;
     // 공개용: 비회원도 전체 열람. 회원용: 소개(root)만, 제1과부터 로그인.
     if (!catalogRequiresMemberLessons(state.activeCatalogSlug)) return false;
@@ -5512,7 +5513,7 @@
       })
       .then(function (data) {
         state.data = normalizeMindmap(data);
-        var allowDeep = state.authRequired === false || state.user || state.admin || hasLocalSession();
+        var allowDeep = state.authRequired === false || state.user || state.admin || state.adminCatalog || hasLocalSession();
         var targetId = allowDeep ? (preferNodeId || state.courseProgress.lastNodeId) : null;
         if (targetId && nodeById(targetId)) {
           state.explored = buildExploredPath(targetId);
