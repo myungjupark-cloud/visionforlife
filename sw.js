@@ -1,5 +1,5 @@
 /* 진리서재 — PWA service worker (/truthlib/ 전용, 로컬은 scope 기준) */
-var CACHE = "truthlib-v22";
+var CACHE = "truthlib-v23";
 
 function appBase() {
   try {
@@ -100,7 +100,8 @@ self.addEventListener("activate", function (event) {
       return Promise.all(
         keys
           .filter(function (key) {
-            return key !== CACHE;
+            // thegospel.kr 의 앱들은 출처가 같아 캐시 저장소를 함께 쓴다 — 우리 것(truthlib-)만 지운다
+            return key.indexOf("truthlib-") === 0 && key !== CACHE;
           })
           .map(function (key) {
             return caches.delete(key);
