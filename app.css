@@ -2138,6 +2138,27 @@ html[data-theme="dark"] .focus-complete-btn.is-done {
   cursor: pointer;
 }
 
+/* 안드로이드 «안전하지 않은 앱 차단됨» 안내 (설치 안내 창·설치 바) */
+.pwa-warn__steps { margin-top: 10px; font-size: 18px; line-height: 1.8; }
+.pwa-warn__n { display: inline-block; width: 1.6em; color: var(--danger); font-weight: 800; }
+.pwa-warn__pics { display: flex; gap: 8px; margin-top: 12px; }
+.pwa-warn__pics a { flex: 1; min-width: 0; color: inherit; text-decoration: none; font-size: 13px; text-align: center; }
+.pwa-warn__pics img {
+  display: block; width: 100%; height: auto;
+  border-radius: 8px; border: 1px solid var(--border-mid); margin-bottom: 4px;
+}
+.pwa-barwarn {
+  margin-top: 10px; padding: 10px 11px;
+  border: 2px solid var(--danger); border-radius: 10px; background: rgba(196, 92, 92, 0.08);
+  color: var(--text); font-size: 13.5px; line-height: 1.65;
+}
+.pwa-barwarn b { font-weight: 800; }
+.pwa-barwarn__pic {
+  margin-top: 6px; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--danger); background: #fff; color: var(--danger);
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+
 /* 맨 아래 마스터 입구 — 눈에 띄지 않게 작고 흐리게. 설치 안내 바에 가리지 않도록 아래 여백을 둔다. */
 .app-footer {
   display: flex;

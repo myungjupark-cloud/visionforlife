@@ -5893,6 +5893,26 @@
     });
   }
 
+  /* 안드로이드 «안전하지 않은 앱 차단됨» 넘기는 법 (2026-10-24 알파님 지시, 모든 앱 공통).
+     설치 도중 브라우저가 이 창을 띄우고, 파란 [확인]을 누르면 설치가 취소된다. 미리 보여 준다.
+     기준: E:\내 드라이브\Projects\게이트_공통\안드로이드_설치경고_안내.md */
+  function androidWarnHtml(withPics) {
+    return '<div class="pwa-guide__box pwa-guide__box--keep pwa-warn">' +
+      '<span class="pwa-guide__box-t">설치 중 보안 경고가 나오면</span>' +
+      "<b>«안전하지 않은 앱 차단됨»</b> 창이 나오면<br>" +
+      "<b>파란색 바탕의 [확인]은 누르지 마세요.</b><br>확인을 누르면 설치가 안 됩니다!" +
+      '<div class="pwa-warn__steps">' +
+      '<div><span class="pwa-warn__n">①</span><b>세부정보 더보기</b>를 누르고</div>' +
+      '<div><span class="pwa-warn__n">②</span><b>무시하고 설치하기</b>를 누르세요.</div></div>' +
+      (withPics
+        ? '<div class="pwa-warn__pics">' +
+          '<a href="install-warn-1.jpg" target="_blank" rel="noopener"><img src="install-warn-1.jpg" alt="① 세부정보 더보기를 누르는 화면" loading="lazy"><span>① 세부정보 더보기</span></a>' +
+          '<a href="install-warn-2.jpg" target="_blank" rel="noopener"><img src="install-warn-2.jpg" alt="② 무시하고 설치하기를 누르는 화면" loading="lazy"><span>② 무시하고 설치하기</span></a></div>' +
+          '<span class="pwa-guide__sm">그림을 누르면 크게 볼 수 있습니다.<br>정상입니다. 구글이 앱 포장 규격을 보고 띄우는 경고라, 그대로 설치하셔도 됩니다.</span>'
+        : "") +
+      "</div>";
+  }
+
   /* 기기별 설치 안내 화면. 운영마스터 기준판(찬송가 c.html, 2026-10-21)의 판별·글을 옮겼다.
      - 아이패드 사파리는 UA 가 맥이라 터치 개수로 가른다(isIPad). 아이패드 갈래가 브라우저 갈래보다 앞.
      - 아이패드 크롬·엣지·웨일에는 '홈 화면에 추가' 가 없다 → 주소 복사 → 사파리. */
@@ -5930,6 +5950,7 @@
     var keep = "";
     var note = "";
     var copyBtn = '<button type="button" class="pwa-guide__copy" id="pwa-guide-copy">주소 복사</button>';
+    var androidWarn = false;
 
     if (isMacSafari) {
       lead = "맥의 <b>사파리</b>는 설치 단추를 자동으로 띄울 수 없습니다.<br>아래 순서대로 하면 Dock 에 아이콘이 생깁니다.";
@@ -5984,7 +6005,8 @@
         steps += step("<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 선택합니다");
       }
       steps += step("나타난 창에서 <b>설치</b>(또는 <b>추가</b>)를 누릅니다");
-      steps += step("설치가 끝날 때까지 몇 초 기다린 뒤, 홈 화면의 <b>아이콘</b>으로 엽니다");
+      steps += step("설치가 되면 <b>홈 화면 맨 끝 쪽에 앱 아이콘</b>이 생깁니다. 아이콘이 있어야 설치가 된 것이니 잘 찾아서 <b>그 아이콘으로 여세요.</b>");
+      androidWarn = true;
       note = (note ? note + "<br>" : "") + "카카오톡 등 <b>앱 안에서 연 화면</b>에서는 설치가 되지 않습니다. <b>크롬</b>이나 <b>삼성 인터넷</b>으로 이 주소를 여세요.";
     } else {
       /* 윈도우·맥(크롬·엣지 등)·리눅스 */
@@ -6031,6 +6053,7 @@
       (check ? '<div class="pwa-guide__box pwa-guide__box--check"><span class="pwa-guide__box-t">먼저 확인하세요</span>' + check +
         sm("이 모드에서는 닫을 때마다 로그인 정보가 지워집니다.") + "</div>" : "") +
       steps +
+      (androidWarn ? androidWarnHtml(true) : "") +
       (note ? '<p class="pwa-guide__note">' + note + "</p>" : "") +
       (keep ? '<div class="pwa-guide__box pwa-guide__box--keep"><span class="pwa-guide__box-t">설치한 뒤에는</span>' + keep + "</div>" : "") +
       '<button type="button" class="pwa-guide__done" id="pwa-guide-done">닫기</button>' +
@@ -6106,9 +6129,21 @@
       return "누르면 내 기기(아이폰·아이패드·안드로이드·컴퓨터)에 맞는 설치 순서를 보여 드립니다.";
     }
 
+    // 안드로이드: 설치 단추를 누르기 전부터 보안 경고 넘기는 법을 보여 준다(그림은 설치 방법 창에서).
+    var barWarn = isAndroid
+      ? '<div class="pwa-barwarn"><b>설치 중 «안전하지 않은 앱 차단됨»이 나오면</b><br>' +
+        "파란 <b>[확인]</b>은 누르지 마세요(설치가 취소됩니다).<br>" +
+        "<b>① 세부정보 더보기 → ② 무시하고 설치하기</b>를 누르세요.<br>" +
+        '<button type="button" class="pwa-barwarn__pic" id="pwa-barwarn-pic">그림으로 보기</button></div>'
+      : "";
+    function wireBarWarn() {
+      var b = document.getElementById("pwa-barwarn-pic");
+      if (b) b.addEventListener("click", openInstallGuide);
+    }
+
     function setManualMode() {
       if (btn) btn.textContent = "설치 방법 자세히 보기";
-      if (msg) msg.innerHTML = shortHintHtml();
+      if (msg) { msg.innerHTML = shortHintHtml() + barWarn; wireBarWarn(); }
     }
 
     function setPromptMode() {
@@ -6116,7 +6151,9 @@
       if (msg) {
         msg.innerHTML =
           "<b>앱 설치하기</b>를 누르세요.<br>" + waitGuide +
-          "<br><br>아래에 설치하기 버튼이 보이지 않으면 브라우저 메뉴에서 <b>홈 화면에 추가</b>를 선택하세요.";
+          "<br><br>아래에 설치하기 버튼이 보이지 않으면 브라우저 메뉴에서 <b>홈 화면에 추가</b>를 선택하세요." +
+          barWarn;
+        wireBarWarn();
       }
     }
 

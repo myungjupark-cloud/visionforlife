@@ -1,5 +1,5 @@
 /* 진리서재 — PWA service worker (/truthlib/ 전용, 로컬은 scope 기준) */
-var CACHE = "truthlib-v23";
+var CACHE = "truthlib-v24";
 
 function appBase() {
   try {
