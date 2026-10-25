@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """진리공과 앱 데이터(교정 반영) → 권별 읽는 txt 16개.
 
-    python scripts/export_truth_lessons_txt.py "<저장 폴더>"
+    python scripts/export_truth_lessons_txt.py            # 현재 위치(아래 DEFAULT_DEST)에 쓴다
+    python scripts/export_truth_lessons_txt.py "<저장 폴더>"   # 다른 폴더에 쓰고 싶을 때
 
-저장 폴더는 인자로 준다(폴더 위치가 옮겨진 적이 있어 코드에 박지 않는다).
-  - 2026-10-23: E:\\내 드라이브\\주의회복의 진리\\진리공과
-  - 2026-10-25 이후: 성경연구 QnA 가 E:\\내 드라이브\\Projects\\성경연구 QnA 소스자료\\08_진리공과\\진리공과 로 옮김
+폴더 위치가 옮겨진 적이 있다(2026-10-23 E:\\내 드라이브\\주의회복의 진리\\진리공과 → 2026-10-25 성경연구 QnA 가
+아래 새 위치로 옮김. 옛 경로는 없어졌다). 다시 옮겨지면 DEFAULT_DEST 만 고친다.
 처음 뽑은 원문(교정 전) txt 가 폴더 안에 있으면 `원문(교정전)` 하위 폴더로 옮겨 둔다(덮어쓰지 않음).
 지난번에 만든 `(교정본)` 파일은 새로 덮어쓴다. 마크다운 기호(##, ###, **)만 걷어 내고 글은 그대로.
 """
@@ -19,6 +19,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 DATA = Path(__file__).resolve().parents[1] / "data" / "courses"
+DEFAULT_DEST = Path(r"E:\내 드라이브\Projects\성경연구 QnA 소스자료\08_진리공과\진리공과")
 
 
 def plain(md: str) -> str:
@@ -31,10 +32,7 @@ def plain(md: str) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) < 2:
-        print(__doc__)
-        return 2
-    dest = Path(sys.argv[1])
+    dest = Path(sys.argv[1]) if len(sys.argv) >= 2 else DEFAULT_DEST
     dest.mkdir(parents=True, exist_ok=True)
     old = dest / "원문(교정전)"
     old.mkdir(exist_ok=True)
